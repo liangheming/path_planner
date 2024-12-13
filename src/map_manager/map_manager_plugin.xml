@@ -1,0 +1,7 @@
+<library path="lib/libmap_manager_nodelet">
+    <class name="navigations/MapManagerNodelet" type="navigations::MapManagerNodelet" base_class_type="nodelet::Nodelet">
+        <description>
+            A simple nodelet example
+        </description>
+    </class>
+</library>

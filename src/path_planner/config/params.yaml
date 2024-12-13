@@ -1,0 +1,39 @@
+planner_costmap:
+  map_type: costmap
+  global_frame: map
+  robot_base_frame: move_base
+
+  footprint: [[-0.36, -0.250], [-0.36, 0.250], [0.36, 0.250], [0.36, -0.250]]
+
+  update_frequency: 2.0
+  publish_frequency: 1.0
+  transform_tolerance: 0.5
+
+  static_map: true
+  rolling_window: false
+
+  static_layer:
+    enabled: true
+    track_unknown_space: true
+    map_topic: "/map"
+  inflation_layer:
+    enabled: true
+    cost_scaling_factor: 8.0
+    inflation_radius: 0.5
+
+  plugins:
+    - { name: static_layer, type: "costmap_2d::StaticLayer" }
+    - { name: inflation_layer, type: "costmap_2d::InflationLayer" }
+
+footprint_boundary: [0.52, 0.26]
+cost_penalty: 2.0
+change_penalty: 1.0
+non_straight_penalty: 1.2
+reverse_penalty: 2.1
+analytic_expansion_ratio: 4.0
+max_iterations: 100000
+max_on_approach_iterations: 1000
+motion_type: ReedsShepp
+tolerance: 0.6
+angle_quantization_bins: 72
+minimum_turning_radius: 0.84
