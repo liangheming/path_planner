@@ -1,8 +1,8 @@
 <launch>
     <arg name="rviz" default="true" />
     <node pkg="map_manager" type="map_manager_node" name="map_manager" output="screen">
-        <param name="map_dir" value="$(env HOME)/config/maps" />
-        <param name="yaml_name" value="dagongguan" />
+        <param name="map_dir" value="$(env HOME)/config/maps_raw" />
+        <param name="yaml_name" value="sim" />
     </node>
     <node pkg="tf" type="static_transform_publisher" name="map_move_base"
         args="0 0 0 0 0 0 map move_base 50" />

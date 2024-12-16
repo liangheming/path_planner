@@ -10,6 +10,7 @@
 
 #include "planner/collision_checker.h"
 #include "planner/a_star.h"
+#include "planner/smoother.h"
 #include <nav_msgs/Path.h>
 #include <chrono>
 
@@ -50,4 +51,8 @@ private:
     CollisionChecker _collision_checker;
     std::shared_ptr<AstarAlgorithm> _astar;
     ros::Publisher _path_pub;
+    ros::Publisher _smooth_path_pub;
+    SmoothInfo _smooth_info;
+
+    std::shared_ptr<Smoother> _path_smoother;
 };

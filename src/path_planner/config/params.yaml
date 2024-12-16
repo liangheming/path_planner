@@ -37,3 +37,8 @@ motion_type: ReedsShepp
 tolerance: 0.6
 angle_quantization_bins: 72
 minimum_turning_radius: 0.84
+
+smooth_iterations: 3000
+smooth_w_data: 0.2
+smooth_w_smooth: 0.5
+

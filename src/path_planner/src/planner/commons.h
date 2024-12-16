@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <cmath>
 
 struct Coordinate
 {
@@ -39,3 +40,7 @@ struct SearchInfo
     unsigned int max_on_approach_iterations;
     MotionType motion_type;
 };
+float normalize_angle(const float &angle);
+
+float shortest_angular_distance(float from, float to);
+

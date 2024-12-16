@@ -12,6 +12,8 @@ PathPlannerROS::PathPlannerROS(ros::NodeHandle &nh) : _nh(nh), _tf_buffer(), _tf
     _collision_checker.setCostMap(_costmap_ros.getCostmap());
     _collision_checker.initBoundary(_node_config.footprint_boundary);
     _astar = std::make_shared<AstarAlgorithm>(_search_info, _collision_checker);
+    _smooth_info.motion_type = _search_info.motion_type;
+    _path_smoother = std::make_shared<Smoother>(_smooth_info, _collision_checker);
     ROS_INFO("[PathPlannerROS] Initialized");
 }
 void PathPlannerROS::loadParameters()
@@ -20,6 +22,7 @@ void PathPlannerROS::loadParameters()
     _nh.param<std::vector<float>>("footprint_boundary", _node_config.footprint_boundary, {1.0});
 
     _nh.param<float>("minimum_turning_radius", _search_info.minimum_turning_radius, 0.84);
+    _smooth_info.minimum_turning_radius = _search_info.minimum_turning_radius;
     _search_info.minimum_turning_radius = ceil(_search_info.minimum_turning_radius / _costmap_ros.getCostmap()->getResolution());
 
     _nh.param<float>("cost_penalty", _search_info.cost_penalty, 2.0);
@@ -38,6 +41,12 @@ void PathPlannerROS::loadParameters()
     _search_info.size_theta = size_theta;
     std::string motion_type;
     _nh.param<std::string>("motion_type", motion_type, "ReedsShepp");
+    int smooth_iterations;
+    _nh.param<int>("smooth_iterations", smooth_iterations, 1000);
+    _smooth_info.max_iter = smooth_iterations;
+    _nh.param<double>("smooth_w_data", _smooth_info.w_data, 0.2);
+    _nh.param<double>("smooth_w_smooth", _smooth_info.w_smooth, 0.5);
+
     if (motion_type == "Dubins")
         _search_info.motion_type = MotionType::Dubins;
     else if (motion_type == "ReedsShepp")
@@ -59,6 +68,9 @@ void PathPlannerROS::loadParameters()
     ROS_INFO("[PathPlannerROS] angle_quantization_bins: %d", size_theta);
     ROS_INFO("[PathPlannerROS] Motion type: %s", motion_type.c_str());
     ROS_INFO("[PathPlannerROS] tolerance: %f", _search_info.tolerance);
+    ROS_INFO("[PathPlannerROS] smooth_iterations: %d", smooth_iterations);
+    ROS_INFO("[PathPlannerROS] smooth_w_data: %f", _smooth_info.w_data);
+    ROS_INFO("[PathPlannerROS] smooth_w_smooth: %f", _smooth_info.w_smooth);
 }
 void PathPlannerROS::initSubscribers()
 {
@@ -71,6 +83,7 @@ void PathPlannerROS::initPublishers()
 {
     ROS_DEBUG("[PathPlannerROS] Initializing publishers");
     _path_pub = _nh.advertise<nav_msgs::Path>("path", 1);
+    _smooth_path_pub = _nh.advertise<nav_msgs::Path>("smooth_path", 1);
 }
 void PathPlannerROS::initServices()
 {
@@ -151,6 +164,22 @@ void PathPlannerROS::goalSetCallback(const geometry_msgs::PoseStamped::ConstPtr 
         ROS_INFO("[PathPlannerROS::initialPoseCallback] Path found: %d, iterations: %d, Path size: %lu", success, iterations, path.size());
     else
         ROS_ERROR("[PathPlannerROS::initialPoseCallback] Path not found: %d, iterations: %d", success, iterations);
+    bool smooth_success = false;
+    Coordinates smooth_path;
+    if (success)
+    {
+        for (Coordinate &coord : path)
+        {
+            double wx, wy;
+            _costmap_ros.getCostmap()->mapToWorld(static_cast<unsigned int>(coord.x), static_cast<unsigned int>(coord.y), wx, wy);
+            coord.theta = normalize_angle(coord.theta * _astar->getMotionTable().bin_size);
+            coord.x = wx;
+            coord.y = wy;
+        }
+        smooth_path = path;
+        smooth_success = _path_smoother->smoothPath(smooth_path);
+    }
+
     if (success)
     {
         nav_msgs::Path path_msg;
@@ -158,31 +187,33 @@ void PathPlannerROS::goalSetCallback(const geometry_msgs::PoseStamped::ConstPtr 
         path_msg.header.stamp = ros::Time::now();
         for (Coordinate &coord : path)
         {
-            double wx, wy, wyaw;
-            _costmap_ros.getCostmap()->mapToWorld(static_cast<unsigned int>(coord.x), static_cast<unsigned int>(coord.y), wx, wy);
-            wyaw = coord.theta * _astar->getMotionTable().bin_size;
-            geometry_msgs::PoseStamped pose;
 
-            pose.pose.position.x = wx;
-            pose.pose.position.y = wy;
+            geometry_msgs::PoseStamped pose;
+            pose.pose.position.x = coord.x;
+            pose.pose.position.y = coord.y;
             pose.pose.position.z = 0;
-            pose.pose.orientation = tf::createQuaternionMsgFromYaw(wyaw);
+            pose.pose.orientation = tf::createQuaternionMsgFromYaw(coord.theta);
             path_msg.poses.push_back(pose);
         }
         _path_pub.publish(path_msg);
     }
-}
 
-// void PathPlannerROS::tempTest()
-// {
-//     _astar->clearGraph();
-//     _astar->setStart(13, 159, 53);
-//     _astar->setGoal(55, 66, 48);
-//     Coordinates path;
-//     int iterations;
-//     bool success = _astar->createPath(path, iterations, _search_info.tolerance);
-//     if (success)
-//         ROS_INFO("[PathPlannerROS::initialPoseCallback] Path found: %d, iterations: %d, Path size: %lu", success, iterations, path.size());
-//     else
-//         ROS_ERROR("[PathPlannerROS::initialPoseCallback] Path not found: %d, iterations: %d", success, iterations);
-// }
+    if (success)
+    {
+        ROS_INFO("[PathPlannerROS::initialPoseCallback] Smoothing successful");
+        nav_msgs::Path path_msg;
+        path_msg.header.frame_id = "map";
+        path_msg.header.stamp = ros::Time::now();
+        for (Coordinate &coord : smooth_path)
+        {
+
+            geometry_msgs::PoseStamped pose;
+            pose.pose.position.x = coord.x;
+            pose.pose.position.y = coord.y;
+            pose.pose.position.z = 0;
+            pose.pose.orientation = tf::createQuaternionMsgFromYaw(coord.theta);
+            path_msg.poses.push_back(pose);
+        }
+        _smooth_path_pub.publish(path_msg);
+    };
+}
