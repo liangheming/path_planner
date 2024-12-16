@@ -27,7 +27,7 @@ planner_costmap:
 
 footprint_boundary: [0.52, 0.26]
 cost_penalty: 2.0
-change_penalty: 1.0
+change_penalty: 0.05
 non_straight_penalty: 1.2
 reverse_penalty: 2.1
 analytic_expansion_ratio: 4.0
@@ -40,5 +40,5 @@ minimum_turning_radius: 0.84
 
 smooth_iterations: 3000
 smooth_w_data: 0.2
-smooth_w_smooth: 0.5
+smooth_w_smooth: 0.3
 
