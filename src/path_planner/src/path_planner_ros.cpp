@@ -159,7 +159,7 @@ void PathPlannerROS::goalSetCallback(const geometry_msgs::PoseStamped::ConstPtr 
     bool success = _astar->createPath(path, iterations, _search_info.tolerance);
     std::chrono::time_point<std::chrono::steady_clock> toc = std::chrono::steady_clock::now();
     int64_t duration = std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count();
-    ROS_INFO("[PathPlannerROS::initialPoseCallback] Time taken: %ld", duration);
+    ROS_INFO("[PathPlannerROS::initialPoseCallback] Time taken: %ld ms", duration);
     if (success)
         ROS_INFO("[PathPlannerROS::initialPoseCallback] Path found: %d, iterations: %d, Path size: %lu", success, iterations, path.size());
     else

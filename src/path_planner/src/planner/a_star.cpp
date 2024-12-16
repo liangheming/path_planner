@@ -18,11 +18,7 @@ bool AstarAlgorithm::setGoal(const unsigned int &x, const unsigned int &y, const
 {
     _goal = addToGraph(_motion_table.getIndex(x, y, theta));
     _goal->coordinate() = {static_cast<float>(x), static_cast<float>(y), static_cast<float>(theta)};
-    std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
     bool ret = cacheObstacleHeuristic();
-    std::chrono::time_point<std::chrono::steady_clock> end = std::chrono::steady_clock::now();
-    int64_t elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::cout << "getObstacleHeuristic: " << elapsed_seconds << " ms" << std::endl;
     return ret;
 }
 void AstarAlgorithm::clearGraph()
