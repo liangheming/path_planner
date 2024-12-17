@@ -25,7 +25,6 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(ompl REQUIRED)
 
 aux_source_directory(src/planner PLANNER_SRC_LIST)
-message(STATUS "PLANNER_SRC_LIST: ${PLANNER_SRC_LIST}")
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES path_planner
@@ -42,5 +41,3 @@ include_directories(
 
 add_executable(path_planner_node src/path_planner_node.cpp src/path_planner_ros.cpp ${PLANNER_SRC_LIST})
 target_link_libraries(path_planner_node ${catkin_LIBRARIES} ${OMPL_LIBRARIES})
-
-add_executable(test_heap src/test_heap.cpp)
