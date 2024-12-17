@@ -25,20 +25,25 @@ planner_costmap:
     - { name: static_layer, type: "costmap_2d::StaticLayer" }
     - { name: inflation_layer, type: "costmap_2d::InflationLayer" }
 
-footprint_boundary: [0.52, 0.26]
-cost_penalty: 2.0
-change_penalty: 0.05
-non_straight_penalty: 1.2
-reverse_penalty: 2.1
-analytic_expansion_ratio: 4.0
-max_iterations: 100000
-max_on_approach_iterations: 1000
-motion_type: ReedsShepp
-tolerance: 0.6
-angle_quantization_bins: 72
-minimum_turning_radius: 0.84
+collision:
+  footprint: [0.72,0.52]
+  hole: true
 
-smooth_iterations: 3000
-smooth_w_data: 0.2
-smooth_w_smooth: 0.3
+path_planner:
+  max_sec: 0.5
+  minimum_turning_radius: 0.84
+  cost_penalty: 2.0
+  change_penalty: 0.05
+  non_straight_penalty: 1.2
+  reverse_penalty: 2.1
+  analytic_expansion_ratio: 4.0
+  max_iterations: 100000
+  max_on_approach_iterations: 1000
+  motion_type: ReedsShepp
+  tolerance: 0.6
+  angle_quantization_bins: 72
 
+smoother:
+  max_iterations: 3000
+  w_data: 0.2
+  w_smooth: 0.3

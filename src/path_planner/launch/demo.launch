@@ -1,5 +1,6 @@
 <launch>
     <arg name="rviz" default="true" />
+    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find path_planner)/config/run.conf" />
     <node pkg="map_manager" type="map_manager_node" name="map_manager" output="screen">
         <param name="map_dir" value="$(env HOME)/config/maps_raw" />
         <param name="yaml_name" value="sim" />

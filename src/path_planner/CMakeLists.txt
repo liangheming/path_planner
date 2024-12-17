@@ -25,6 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(ompl REQUIRED)
 
 aux_source_directory(src/planner PLANNER_SRC_LIST)
+
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES path_planner
