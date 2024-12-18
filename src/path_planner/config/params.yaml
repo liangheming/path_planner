@@ -36,7 +36,8 @@ path_planner:
   change_penalty: 0.01
   non_straight_penalty: 1.2
   reverse_penalty: 2.1
-  analytic_expansion_ratio: 4.0
+  analytic_expansion_ratio: 1.0
+  analytic_expansion_tolerance: 3.0
   max_iterations: 100000
   max_on_approach_iterations: 1000
   motion_type: ReedsShepp

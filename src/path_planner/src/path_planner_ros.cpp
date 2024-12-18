@@ -27,7 +27,8 @@ void PathPlannerROS::loadParameters()
     path_planner_handle.param<float>("change_penalty", _node_config.search_info.change_penalty, 0.0f);
     path_planner_handle.param<float>("non_straight_penalty", _node_config.search_info.non_straight_penalty, 1.2f);
     path_planner_handle.param<float>("reverse_penalty", _node_config.search_info.reverse_penalty, 2.1f);
-    path_planner_handle.param<float>("analytic_expansion_ratio", _node_config.search_info.analytic_expansion_ratio, 4.0f);
+    path_planner_handle.param<float>("analytic_expansion_ratio", _node_config.search_info.analytic_expansion_ratio, 1.0f);
+    path_planner_handle.param<float>("analytic_expansion_tolerance", _node_config.search_info.analytic_expansion_tolerance, 3.0f);
 
     int max_iterations, max_on_approach_iterations, angle_quantization_bins;
     path_planner_handle.param<int>("angle_quantization_bins", angle_quantization_bins, 72);
@@ -70,6 +71,7 @@ void PathPlannerROS::loadParameters()
     ROS_DEBUG("[PathPlannerROS] non_straight_penalty: %f", _node_config.search_info.non_straight_penalty);
     ROS_DEBUG("[PathPlannerROS] reverse_penalty: %f", _node_config.search_info.reverse_penalty);
     ROS_DEBUG("[PathPlannerROS] analytic_expansion_ratio: %f", _node_config.search_info.analytic_expansion_ratio);
+    ROS_DEBUG("[PathPlannerROS] analytic_expansion_tolerance: %f", _node_config.search_info.analytic_expansion_tolerance);
     ROS_DEBUG("[PathPlannerROS] max_iterations: %u", _node_config.search_info.max_iterations);
     ROS_DEBUG("[PathPlannerROS] max_on_approach_iterations: %u", _node_config.search_info.max_on_approach_iterations);
     ROS_DEBUG("[PathPlannerROS] tolerance: %f", _node_config.search_info.tolerance);

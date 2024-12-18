@@ -9,6 +9,8 @@ AstarHybrid::AstarHybrid(SearchInfo *search_info, CollisionChecker *collision_ch
     _search_info->size_x = _collision_checker->getCostMap()->getSizeInCellsX();
     _search_info->size_y = _collision_checker->getCostMap()->getSizeInCellsY();
     _search_info->tolerance_in_cell = ceil(search_info->tolerance / static_cast<float>(_collision_checker->getCostMap()->getResolution()));
+    _search_info->analytic_expansion_ratio_in_cell = ceil(search_info->analytic_expansion_ratio / static_cast<float>(_collision_checker->getCostMap()->getResolution()));
+    _search_info->analytic_expansion_tolerance_in_cell = ceil(search_info->analytic_expansion_tolerance / static_cast<float>(_collision_checker->getCostMap()->getResolution()));
     _motion_table.init(*_search_info);
 }
 void AstarHybrid::resetIterations(unsigned int &max_iterations, unsigned int &max_on_approach_iterations)
@@ -342,8 +344,8 @@ AstarHybrid::NodePtr AstarHybrid::tryAnalyticExpansion(NodePtr &current_node, in
 {
     closest_distance = std::min(static_cast<int>(getHeuristicCost(current_node->coordinate(), _goal->coordinate()) / Node::NeutralCost), closest_distance);
     int desired_iterations = std::max(
-        static_cast<int>(closest_distance / _search_info->analytic_expansion_ratio),
-        static_cast<int>(std::ceil(_search_info->analytic_expansion_ratio)));
+        static_cast<int>(closest_distance / _search_info->analytic_expansion_ratio_in_cell),
+        static_cast<int>(std::ceil(_search_info->analytic_expansion_ratio_in_cell)));
     analytic_iterations = std::min(analytic_iterations, desired_iterations);
     if (analytic_iterations <= 0)
     {
@@ -441,11 +443,14 @@ bool AstarHybrid::createPath(const Coordinate &start, const Coordinate &goal, Co
         if (std::chrono::duration_cast<std::chrono::milliseconds>(toc_time - tic_time).count() > _search_info->max_millsec)
             return false;
 
-        NodePtr result = tryAnalyticExpansion(current_node, analytic_iterations, closest_distance);
-
-        if (result != nullptr)
+        if (best_heuristic_node.first < _search_info->analytic_expansion_tolerance_in_cell)
         {
-            current_node = result;
+            NodePtr result = tryAnalyticExpansion(current_node, analytic_iterations, closest_distance);
+
+            if (result != nullptr)
+            {
+                current_node = result;
+            }
         }
 
         if (isGoal(current_node))

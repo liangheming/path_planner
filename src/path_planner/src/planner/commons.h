@@ -36,7 +36,10 @@ struct SearchInfo
     float reverse_penalty{2.0f};
     float cost_penalty{2.1f};
     float non_straight_penalty{1.2f};
+    float analytic_expansion_tolerance{3.0};
+    float analytic_expansion_tolerance_in_cell{3.0};
     float analytic_expansion_ratio{4.0f};
+    float analytic_expansion_ratio_in_cell{4.0f};
     unsigned int max_iterations = {100000};
     unsigned int max_on_approach_iterations{1000};
     MotionType motion_type = MotionType::Dubins;
