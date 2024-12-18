@@ -444,7 +444,10 @@ bool AstarHybrid::createPath(const Coordinate &start, const Coordinate &goal, Co
         NodePtr result = tryAnalyticExpansion(current_node, analytic_iterations, closest_distance);
 
         if (result != nullptr)
+        {
             current_node = result;
+        }
+
         if (isGoal(current_node))
         {
             bool ret = backtracePath(current_node, path);
