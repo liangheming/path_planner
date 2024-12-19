@@ -109,19 +109,25 @@ void PathPlannerROS::initialPoseCallback(const geometry_msgs::PoseWithCovariance
 }
 void PathPlannerROS::goalSetCallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
+    Coordinate start, goal;
     if (!_is_start_set)
     {
         ROS_WARN("[PathPlannerROS::goalSetCallback] Received goal before initial pose, ignoring");
         return;
     }
     _temp_goal_pose = msg->pose;
-    Coordinate start, goal;
-    start.x = _temp_start_pose.position.x;
-    start.y = _temp_start_pose.position.y;
-    start.theta = tf::getYaw(_temp_start_pose.orientation);
-    goal.x = _temp_goal_pose.position.x;
-    goal.y = _temp_goal_pose.position.y;
-    goal.theta = tf::getYaw(_temp_goal_pose.orientation);
+
+    start.x = static_cast<int>(_temp_start_pose.position.x * 100) / 100.0f;
+    start.y = static_cast<int>(_temp_start_pose.position.y * 100) / 100.0f;
+    start.theta = static_cast<int>(tf::getYaw(_temp_start_pose.orientation) * 100) / 100.0f;
+
+    goal.x = static_cast<int>(_temp_goal_pose.position.x * 100) / 100.0f;
+    goal.y = static_cast<int>(_temp_goal_pose.position.y * 100) / 100.0f;
+    goal.theta = static_cast<int>(tf::getYaw(_temp_goal_pose.orientation) * 100) / 100.0f;
+  
+
+    ROS_INFO("start_point x:%f, y:%f, yaw: %f", start.x, start.y, start.theta);
+    ROS_INFO("goal_point x:%f, y:%f, yaw: %f", goal.x, goal.y, goal.theta);
     Coordinates path;
     int iterations;
     std::chrono::time_point<std::chrono::steady_clock> tic = std::chrono::steady_clock::now();

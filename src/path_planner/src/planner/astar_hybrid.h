@@ -69,7 +69,9 @@ private:
 
     float getTravelCost(NodePtr &from, NodePtr &to);
 
-    void fromCellToWorld( Coordinates &path);
+    Coordinates fromCellToWorld(const Coordinates &path);
+
+    bool createPath(Coordinates &path, int &iterations);
 
     NodePtr _start;
     NodePtr _goal;

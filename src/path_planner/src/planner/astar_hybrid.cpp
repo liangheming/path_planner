@@ -46,7 +46,7 @@ bool AstarHybrid::setStart(const float &x_in_cell, const float &y_in_cell, const
 {
     unsigned int x_idx = static_cast<unsigned int>(floor(x_in_cell));
     unsigned int y_idx = static_cast<unsigned int>(floor(y_in_cell));
-    float mutable_theta_in_cell = theta_in_cell;
+    float mutable_theta_in_cell = theta_in_cell + _motion_table.size_theta_float;
     _motion_table.normalizeHeading(mutable_theta_in_cell);
     unsigned int theta_idx = static_cast<unsigned int>(floor(mutable_theta_in_cell));
     _start = addToGraph(_motion_table.getIndex(x_idx, y_idx, theta_idx));
@@ -57,12 +57,12 @@ bool AstarHybrid::setGoal(const float &x_in_cell, const float &y_in_cell, const 
 {
     unsigned int x_idx = static_cast<unsigned int>(floor(x_in_cell));
     unsigned int y_idx = static_cast<unsigned int>(floor(y_in_cell));
-    float mutable_theta_in_cell = theta_in_cell;
+    float mutable_theta_in_cell = theta_in_cell + _motion_table.size_theta_float;
     _motion_table.normalizeHeading(mutable_theta_in_cell);
     unsigned int theta_idx = static_cast<unsigned int>(floor(mutable_theta_in_cell));
     _goal = addToGraph(_motion_table.getIndex(x_idx, y_idx, mutable_theta_in_cell));
     _goal->coordinate() = {x_in_cell, y_in_cell, mutable_theta_in_cell};
-    return cacheObstacleHeuristic();
+    return true;
 }
 AstarHybrid::NodePtr AstarHybrid::addToGraph(unsigned int index)
 {
@@ -82,13 +82,13 @@ void AstarHybrid::addToQueue(const float cost, NodePtr &node)
 float AstarHybrid::getMotionHeuristicCost(const Coordinate &start_coord, const Coordinate &goal_coord)
 {
     ompl::base::ScopedState<> from(_motion_table.state_space), to(_motion_table.state_space);
-    from[0] = start_coord.x;
-    from[1] = start_coord.y;
-    from[2] = start_coord.theta * _motion_table.bin_size;
-    to[0] = goal_coord.x;
-    to[1] = goal_coord.y;
-    to[2] = goal_coord.theta * _motion_table.bin_size;
-    return _motion_table.state_space->distance(from(), to());
+    from[0] = static_cast<double>(start_coord.x);
+    from[1] = static_cast<double>(start_coord.y);
+    from[2] = normalize_angle(static_cast<double>(start_coord.theta * _motion_table.bin_size));
+    to[0] = static_cast<double>(goal_coord.x);
+    to[1] = static_cast<double>(goal_coord.y);
+    to[2] = normalize_angle(static_cast<double>(goal_coord.theta * _motion_table.bin_size));
+    return static_cast<float>(_motion_table.state_space->distance(from(), to()));
 }
 float AstarHybrid::distance2d(unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2)
 {
@@ -171,9 +171,16 @@ float AstarHybrid::getObstacleHeuristic(const Coordinate &start_coord, const Coo
     const unsigned int start_y = static_cast<unsigned int>(start_coord.y);
     const unsigned int start_index = start_y * size_x + start_x;
     const float &requested_node_cost = _obstacle_heuristic_lookup_table[start_index];
-    float elur_distance = hypotf(start_coord.x - goal_coord.x, start_coord.y - goal_coord.y);
+
+    int start_x_int = static_cast<int>(start_coord.x), start_y_int = static_cast<int>(start_coord.y);
+    int goal_x_int = static_cast<int>(goal_coord.x), goal_y_int = static_cast<int>(goal_coord.y);
+    int x_abs_distance = abs(start_x_int - goal_x_int);
+    int y_abs_distance = abs(start_y_int - goal_y_int);
+    const float sqrt_2 = sqrtf(2.0f);
+    float diagonal_distance = std::min(x_abs_distance, y_abs_distance) * sqrt_2 + std::abs(x_abs_distance - y_abs_distance);
+
     if (requested_node_cost > 0.0f)
-        return std::max(requested_node_cost, elur_distance);
+        return std::max(requested_node_cost, diagonal_distance);
     for (auto &n : _obstacle_heuristic_queue)
     {
         unsigned int c_idx = n.second;
@@ -184,7 +191,7 @@ float AstarHybrid::getObstacleHeuristic(const Coordinate &start_coord, const Coo
     std::make_heap(_obstacle_heuristic_queue.begin(), _obstacle_heuristic_queue.end(), ObstacleHeuristicComparator{});
     const int size_x_int = static_cast<int>(size_x);
     const int size_y_int = static_cast<int>(size_y);
-    const float sqrt_2 = sqrtf(2.0f);
+
     unsigned int idx, mx, my, mx_idx, my_idx, new_idx = 0;
     float c_cost, cost, travel_cost, new_cost, existing_cost;
     const std::vector<std::pair<int, int>> neighborhood = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}};
@@ -230,7 +237,7 @@ float AstarHybrid::getObstacleHeuristic(const Coordinate &start_coord, const Coo
         if (idx == start_index)
             break;
     }
-    return std::max(requested_node_cost, elur_distance);
+    return std::max(requested_node_cost, diagonal_distance);
 }
 float AstarHybrid::getHeuristicCost(const Coordinate &start_coord, const Coordinate &goal_coord)
 {
@@ -285,17 +292,19 @@ void AstarHybrid::getNeighbors(NodePtr &node, NodePtrVector &neighbors)
 
 AstarHybrid::NodePtr AstarHybrid::getAnalyticExpansion(NodePtr &current_node)
 {
-    Coordinate &node_coord = current_node->coordinate();
-    Coordinate &goal_coord = _goal->coordinate();
+    const Coordinate &node_coord = current_node->coordinate();
+    const Coordinate &goal_coord = _goal->coordinate();
     ompl::base::ScopedState<> from(_motion_table.state_space), to(_motion_table.state_space), s(_motion_table.state_space);
-    from[0] = node_coord.x;
-    from[1] = node_coord.y;
-    from[2] = node_coord.theta * _motion_table.bin_size;
-    to[0] = goal_coord.x;
-    to[1] = goal_coord.y;
-    to[2] = goal_coord.theta * _motion_table.bin_size;
+    from[0] = static_cast<double>(node_coord.x);
+    from[1] = static_cast<double>(node_coord.y);
+    from[2] = normalize_angle(static_cast<double>(node_coord.theta * _motion_table.bin_size));
+    to[0] = static_cast<double>(goal_coord.x);
+    to[1] = static_cast<double>(goal_coord.y);
+    to[2] = normalize_angle(static_cast<double>(goal_coord.theta * _motion_table.bin_size));
     float motion_distance = _motion_table.state_space->distance(from(), to());
     float sqrt_2 = sqrtf(2.0f);
+    // std::cout << "from " << from[0] << " " << from[1] << " " << from[2] << std::endl;
+    // std::cout << "to  " << to[0] << " " << to[1] << " " << to[2] << std::endl;
 
     std::vector<Node> possible_nodes;
     std::vector<double> reals;
@@ -307,13 +316,13 @@ AstarHybrid::NodePtr AstarHybrid::getAnalyticExpansion(NodePtr &current_node)
     {
         _motion_table.state_space->interpolate(from(), to(), i / num_intervals, s());
         reals = s.reals();
-        angle = reals[2] / _motion_table.bin_size;
+        angle = static_cast<float>(reals[2]) / _motion_table.bin_size + _motion_table.size_theta_float;
         _motion_table.normalizeHeading(angle);
         x_idx = static_cast<unsigned int>(reals[0]);
         y_idx = static_cast<unsigned int>(reals[1]);
         if (x_idx <= 0 || x_idx >= _motion_table.size_x - 1 || y_idx <= 0 || y_idx >= _motion_table.size_y - 1)
             return NodePtr(nullptr);
-        if (_collision_checker->checkFootPrintCollision(reals[0], reals[1], reals[2]))
+        if (_collision_checker->checkFootPrintCollision(static_cast<float>(reals[0]), static_cast<float>(reals[1]), static_cast<float>(reals[2])))
             return NodePtr(nullptr);
         possible_nodes.emplace_back(_motion_table.getIndex(x_idx, y_idx, static_cast<unsigned int>(angle)));
         possible_nodes.back().coordinate() = {static_cast<float>(reals[0]), static_cast<float>(reals[1]), angle};
@@ -397,8 +406,7 @@ bool AstarHybrid::createPath(const Coordinate &start, const Coordinate &goal, Co
         return false;
 
     g_theta_in_cell = goal.theta / _motion_table.bin_size;
-    std::chrono::time_point<std::chrono::high_resolution_clock> tic_time, toc_time;
-    tic_time = std::chrono::high_resolution_clock::now();
+
     clearGraph();
     float x_in_cell, y_in_cell;
     x_in_cell = (start.x - original_x) / resolution;
@@ -410,8 +418,19 @@ bool AstarHybrid::createPath(const Coordinate &start, const Coordinate &goal, Co
     y_in_cell = (goal.y - original_y) / resolution;
     if (!setGoal(x_in_cell, y_in_cell, g_theta_in_cell))
         return false;
+    Coordinates temp_path;
+    bool search_success = createPath(temp_path, iterations);
+    if (search_success)
+        path = fromCellToWorld(temp_path);
+    return search_success;
+}
+bool AstarHybrid::createPath(Coordinates &path, int &iterations)
+{
+    std::chrono::time_point<std::chrono::high_resolution_clock> tic_time, toc_time;
+    tic_time = std::chrono::high_resolution_clock::now();
+    if (!cacheObstacleHeuristic())
+        return false;
     clearQueue();
-
     iterations = 0;
     int approach_iterations = 0;
     int analytic_iterations = 0;
@@ -456,7 +475,6 @@ bool AstarHybrid::createPath(const Coordinate &start, const Coordinate &goal, Co
         if (isGoal(current_node))
         {
             bool ret = backtracePath(current_node, path);
-            fromCellToWorld(path);
             return ret;
         }
         else if (best_heuristic_node.first < tolerance)
@@ -467,7 +485,6 @@ bool AstarHybrid::createPath(const Coordinate &start, const Coordinate &goal, Co
                 NodePtr node = &(_graph.at(best_heuristic_node.second));
                 _goal->parent = node;
                 bool ret = backtracePath(_goal, path);
-                fromCellToWorld(path);
                 return ret;
             }
         }
@@ -489,15 +506,17 @@ bool AstarHybrid::createPath(const Coordinate &start, const Coordinate &goal, Co
     }
     return false;
 }
-
-void AstarHybrid::fromCellToWorld(Coordinates &path)
+Coordinates AstarHybrid::fromCellToWorld(const Coordinates &path)
 {
-    for (Coordinate &coord : path)
+    Coordinates world_paths;
+    for (const Coordinate &coord : path)
     {
         double wx, wy;
         _collision_checker->getCostMap()->mapToWorld(static_cast<unsigned int>(coord.x), static_cast<unsigned int>(coord.y), wx, wy);
-        coord.x = static_cast<float>(wx);
-        coord.y = static_cast<float>(wy);
-        coord.theta = normalize_angle(coord.theta * _motion_table.bin_size);
+        float nx = static_cast<float>(wx);
+        float ny = static_cast<float>(wy);
+        float ntheta = normalize_angle(coord.theta * _motion_table.bin_size);
+        world_paths.emplace_back(nx, ny, ntheta);
     }
+    return world_paths;
 }
