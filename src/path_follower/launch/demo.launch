@@ -1,0 +1,24 @@
+<launch>
+    <arg name="rviz" default="true" />
+    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find path_planner)/config/run.conf" />
+    <node pkg="map_manager" type="map_manager_node" name="map_manager" output="screen">
+        <param name="map_dir" value="$(env HOME)/config/maps_raw" />
+        <param name="yaml_name" value="sim" />
+    </node>
+    <!-- <node pkg="tf" type="static_transform_publisher" name="map_move_base"
+        args="0 0 0 0 0 0 map move_base 50" /> -->
+    <node pkg="path_follower" type="tf_pub_once_node" name="tf_pub" output="screen" />
+
+    <node pkg="path_planner" type="path_planner_node" name="path_planner" output="screen">
+        <rosparam command="load" file="$(find path_planner)/config/params.yaml" />
+    </node>
+
+    <node pkg="path_follower" type="path_follower_node" name="path_follower" output="screen">
+        <rosparam command="load" file="$(find path_follower)/config/params.yaml" />
+    </node>
+
+    <group if="$(arg rviz)">
+        <node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz"
+            args="-d $(find path_follower)/rviz/default.rviz" />
+    </group>
+</launch>

@@ -137,6 +137,7 @@ void PathPlannerROS::goalSetCallback(const geometry_msgs::PoseStamped::ConstPtr 
     ROS_INFO("[PathPlannerROS::initialPoseCallback] Planner taken: %ld ms", duration);
     if (path_planner_success)
     {
+        std::reverse(path.begin(), path.end());
         ROS_INFO("[PathPlannerROS::initialPoseCallback] Path found, iterations: %d, Path size: %lu", iterations, path.size());
         tic = std::chrono::steady_clock::now();
         _smoother->smoothPath(path);

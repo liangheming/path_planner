@@ -12,6 +12,11 @@ LIST(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake_modules)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  tf
+  nav_msgs
+  geometry_msgs
+  tf2_ros
+  costmap_2d
 )
 # ${G2O_INCLUDE_DIR} ${G2O_LIBRARIES}
 find_package(G2O REQUIRED)
@@ -32,5 +37,10 @@ include_directories(
 )
 
 aux_source_directory(src/teb_local_planner TEB_SRC)
+add_executable(path_follower_node src/path_follower_node.cpp src/path_follower_ros.cpp ${TEB_SRC})
+target_include_directories(path_follower_node PRIVATE ${G2O_INCLUDE_DIR} ${SUITESPARSE_INCLUDE_DIRS})
+target_link_libraries(path_follower_node ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${SUITESPARSE_LIBRARIES})
 
-add_executable(main src/main.cpp ${TEB_SRC})
+
+add_executable(tf_pub_once_node src/tf_pub_once_node.cpp)
+target_link_libraries(tf_pub_once_node ${catkin_LIBRARIES})

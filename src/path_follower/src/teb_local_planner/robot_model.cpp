@@ -64,3 +64,33 @@ double PolygonRobotModel::distanceToPoint(const Pose2E &pose, const Point2D &poi
     dist = std::min(dist, distance);
     return dist;
 }
+
+
+RobotModel *RobotModelHelper::createRobotModel(std::vector<double> &vertices)
+{
+    if (vertices.size() == 1)
+    {
+        return new CircleRobotModel(vertices[0]);
+    }
+    if (vertices.size() == 2)
+    {
+        double width = vertices[0];
+        double height = vertices[1];
+        double half_width = width / 2.0;
+        double half_height = height / 2.0;
+        std::vector<Point2D> polygon;
+        polygon.emplace_back(half_width, half_height);
+        polygon.emplace_back(half_width, -half_height);
+        polygon.emplace_back(-half_width, -half_height);
+        polygon.emplace_back(-half_width, half_height);
+        return new PolygonRobotModel(polygon);
+    }
+    if (vertices.size() % 2 != 0)
+        throw std::runtime_error("RobotModelHelper: Polygon must have even number of vertices");
+    std::vector<Point2D> polygon;
+    for (size_t i = 0; i < vertices.size(); i += 2)
+    {
+        polygon.emplace_back(vertices[i], vertices[i + 1]);
+    }
+    return new PolygonRobotModel(polygon);
+}

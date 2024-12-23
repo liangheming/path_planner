@@ -37,3 +37,15 @@ private:
     double _circumradius;
     void computeRadius();
 };
+
+class RobotModelHelper
+{
+public:
+    /**
+     * 根据传递进来数组初始化机器人模型
+     * 1. 只传递一个变量的话，则使用圆形机器人模型
+     * 2. 只传递两个变量的话，则使用长方形机器人模型
+     * 3. 传递三个以上变量的话，则使用多边形机器人模型
+     */
+    static RobotModel *createRobotModel(std::vector<double> &vertices);
+};
