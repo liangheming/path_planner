@@ -6,6 +6,8 @@ double normalizeAngle(const double &angle);
 
 double normalizeAngle(double &&angle);
 
+double average_angle(double theta1, double theta2);
+
 struct Point2D
 {
     double x;
@@ -25,6 +27,8 @@ struct Pose2E
     Pose2E() : x(0), y(0), theta(0) {}
     Pose2E(const double &_x, const double &_y, const double &_theta = 0.0) : x(_x), y(_y), theta(_theta) {}
     Pose2E(double &&_x, double &&_y, double &&_theta = 0.0) : x(_x), y(_y), theta(_theta) {}
+
+    static Pose2E average(const Pose2E &p1, const Pose2E &p2);
 };
 
 using Pose2Es = std::vector<Pose2E>;
@@ -43,7 +47,7 @@ struct FollowerInfo
     double obstacle_behind_ignore_range = 1.5;
     bool allow_init_backwords = false;
     bool overwrite_orientation = false;
-    double dt_ref = 0.3;
+    double dt_ref = 0.2;
     double dt_std = 0.1;
     int max_samples = 64;
     int min_samples = 16;
@@ -69,6 +73,8 @@ struct FollowerInfo
     int no_outer_iterations = 3;
     int no_inner_iterations = 4;
 
+    double weight_adapt_factor = 1.5;
+
     double weight_max_vel_x = 1.0;
     double weight_max_vel_y = 1.0;
     double weight_max_vel_theta = 1.0;
@@ -84,4 +90,5 @@ struct FollowerInfo
     double weight_obstacle_collision = 50.0;
     double weight_obstacle_inflation = 0.1;
     double weight_viapoints = 1.0;
+
 };

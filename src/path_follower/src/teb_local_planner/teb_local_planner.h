@@ -1,5 +1,6 @@
 #pragma once
 #include "commons.h"
+#include "teb_optimizer.h"
 #include <iostream>
 #include <costmap_2d/costmap_2d.h>
 #include <costmap_2d/cost_values.h>
@@ -27,6 +28,8 @@ private:
     Point2Ds _via_points;
     Point2Ds _obstacles;
     costmap_2d::Costmap2D *_costmap;
+    TebOptimizer _optimizer;
+
 
     void pruneGlobalPath();
 

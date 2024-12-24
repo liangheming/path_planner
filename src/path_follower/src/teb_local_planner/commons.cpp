@@ -12,7 +12,15 @@ double normalizeAngle(const double &angle)
         return result + M_PI;
     return result - M_PI;
 }
-
+double average_angle(double theta1, double theta2)
+{
+    double x = std::cos(theta1) + std::cos(theta2);
+    double y = std::sin(theta1) + std::sin(theta2);
+    if (x == 0 && y == 0)
+        return 0;
+    else
+        return std::atan2(y, x);
+}
 double normalizeAngle(double &&angle)
 {
     return normalizeAngle(angle);
@@ -37,4 +45,12 @@ Point2D nearestPointOnLine(const Point2D &point, const Point2D &line_start, cons
     if (u >= 1)
         return line_end;
     return Point2D(line_start.x + u * dx, line_start.y + u * dy);
+}
+
+Pose2E Pose2E::average(const Pose2E &p1, const Pose2E &p2)
+{
+    double cx = (p1.x + p2.x) / 2;
+    double cy = (p1.y + p2.y) / 2;
+    double ctheta = average_angle(p1.theta, p2.theta);
+    return Pose2E(cx, cy, ctheta);
 }

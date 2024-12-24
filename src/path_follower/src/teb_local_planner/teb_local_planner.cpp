@@ -1,6 +1,10 @@
 #include "teb_local_planner.h"
 
-TebLocalPlanner::TebLocalPlanner(FollowerInfo *follower_info, costmap_2d::Costmap2D *costmap) : _follower_info(follower_info), _costmap(costmap)
+TebLocalPlanner::TebLocalPlanner(FollowerInfo *follower_info, costmap_2d::Costmap2D *costmap)
+    : _follower_info(follower_info),
+      _costmap(costmap),
+      _optimizer(follower_info)
+
 {
 }
 
@@ -124,8 +128,6 @@ Pose2E TebLocalPlanner::getLocalTwists()
     generateObstacles();
     if (_local_path.size() > 1)
         _local_path.front() = _current_pose;
-    std::cout << "local_path :" << _local_path.size() << std::endl;
-    std::cout << "via_points :" << _via_points.size() << std::endl;
-    std::cout << "obstacles :" << _obstacles.size() << std::endl;
+    _optimizer.plan(_local_path, _current_vel);
     return Pose2E(0, 0, 0);
 }
