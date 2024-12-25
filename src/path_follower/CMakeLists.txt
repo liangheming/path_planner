@@ -36,11 +36,17 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-aux_source_directory(src/teb_local_planner TEB_SRC)
-add_executable(path_follower_node src/path_follower_node.cpp src/path_follower_ros.cpp ${TEB_SRC})
+aux_source_directory(src/teb_follower TEB_SRC)
+file(GLOB EDGES_HPP src/teb_follower/g2o_edges/*.hpp)
+
+add_executable(path_follower_node src/path_follower_node.cpp src/path_follower_ros.cpp ${TEB_SRC} ${EDGES_HPP})
 target_include_directories(path_follower_node PRIVATE ${G2O_INCLUDE_DIR} ${SUITESPARSE_INCLUDE_DIRS})
 target_link_libraries(path_follower_node ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${SUITESPARSE_LIBRARIES})
 
 
 add_executable(tf_pub_once_node src/tf_pub_once_node.cpp)
 target_link_libraries(tf_pub_once_node ${catkin_LIBRARIES})
+
+# add_executable(test_g2o_demo src/test_g2o_demo.cpp ${TEB_SRC} ${EDGES_HPP})
+# target_include_directories(test_g2o_demo PRIVATE ${G2O_INCLUDE_DIR} ${SUITESPARSE_INCLUDE_DIRS})
+# target_link_libraries(test_g2o_demo ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${SUITESPARSE_LIBRARIES})

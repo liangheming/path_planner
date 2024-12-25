@@ -1,6 +1,17 @@
 #pragma once
 #include <cmath>
 #include <vector>
+#include <g2o/core/base_vertex.h>
+
+class VertexDouble : public g2o::BaseVertex<1, double>
+{
+public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    virtual bool read(std::istream &is);
+    virtual bool write(std::ostream &os) const;
+    virtual void setToOriginImpl();
+    virtual void oplusImpl(const double *update);
+};
 
 double normalizeAngle(const double &angle);
 
@@ -8,6 +19,11 @@ double normalizeAngle(double &&angle);
 
 double average_angle(double theta1, double theta2);
 
+double soft_sign(double x, double k = 1.0);
+
+double penaltyBoundedValue(const double &var, const double &a, const double &b, const double &epsilon);
+double penaltyBoundedValue(const double &var, const double &a, const double &epsilon);
+double penaltyBelow(const double &var, const double &a, const double &epsilon);
 struct Point2D
 {
     double x;
@@ -90,5 +106,4 @@ struct FollowerInfo
     double weight_obstacle_collision = 50.0;
     double weight_obstacle_inflation = 0.1;
     double weight_viapoints = 1.0;
-
 };

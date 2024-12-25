@@ -8,9 +8,9 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <costmap_2d/costmap_2d_ros.h>
-#include "teb_local_planner/commons.h"
-#include "teb_local_planner/robot_model.h"
-#include "teb_local_planner/teb_local_planner.h"
+#include "teb_follower/commons.h"
+#include "teb_follower/robot_model.h"
+#include "teb_follower/teb_local_planner.h"
 
 #include <sensor_msgs/PointCloud.h>
 

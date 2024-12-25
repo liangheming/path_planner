@@ -1,26 +1,15 @@
 #include "teb_optimizer.h"
 
-bool VertexDouble::read(std::istream &is)
-{
-    is >> _estimate;
-    return true;
-}
-bool VertexDouble::write(std::ostream &os) const
-{
-    os << _estimate;
-    return true;
-}
-void VertexDouble::setToOriginImpl()
-{
-    _estimate = 0.1;
-}
-void VertexDouble::oplusImpl(const double *update)
-{
-    _estimate += update[0];
-}
-
 TebOptimizer::TebOptimizer(FollowerInfo *follower_info) : _follower_info(follower_info)
 {
+    std::unique_ptr<TebLinearSolver> linear_solver = std::make_unique<TebLinearSolver>();
+    linear_solver->setBlockOrdering(true);
+    std::unique_ptr<TebBlockSolver> block_solver = std::make_unique<TebBlockSolver>(std::move(linear_solver));
+    _optimizer = std::make_shared<g2o::SparseOptimizer>();
+    g2o::OptimizationAlgorithmLevenberg *solver = new g2o::OptimizationAlgorithmLevenberg(std::move(block_solver));
+    // 这里只需要new就好了，_optimizer 析构的时候会自动析构solver
+    _optimizer->setAlgorithm(solver);
+    _optimizer->initMultiThreading();
 }
 
 Pose2E TebOptimizer::plan(const Pose2Es &initial_trajectory, const Pose2E &start_vel)
@@ -48,11 +37,14 @@ void TebOptimizer::initTrajectory()
             backward = true;
         for (unsigned int i = 0; i < _cached_trajectory.size() - 1; ++i)
         {
+            if (i == 0)
+                continue;
             dx = _cached_trajectory[i + 1].x - _cached_trajectory[i].x;
             dy = _cached_trajectory[i + 1].y - _cached_trajectory[i].y;
             _cached_trajectory[i].theta = atan2(dy, dx);
             if (backward)
                 _cached_trajectory[i].theta += M_PI;
+            _cached_trajectory[i].theta = normalizeAngle(_cached_trajectory[i].theta);
         }
     }
     // 进行简单的时间差值初始化
@@ -73,8 +65,7 @@ bool TebOptimizer::optimize()
     for (int i = 0; i < _follower_info->no_outer_iterations; ++i)
     {
         autoResize();
-        break;
-
+        setVertices();
         buildGraph(weight_multiplier);
         success = optimizeGraph();
         if (!success)
@@ -83,23 +74,111 @@ bool TebOptimizer::optimize()
             return false;
         }
         weight_multiplier *= _follower_info->weight_adapt_factor;
+        // std::cout << "================iteration: " << i << " weight_multiplier: " << weight_multiplier<<" =================" << std::endl;
+        getVertices();
         clearGraph();
     }
     return true;
 }
+void TebOptimizer::setVertices()
+{
+    _trajectory.clear();
+    _time_diffs.clear();
+    unsigned int id_counter = 0;
+    for (unsigned int i = 0; i < _cached_trajectory.size(); ++i)
+    {
+        g2o::VertexSE2 *vertex = new g2o::VertexSE2();
+        vertex->setFixed(false);
+        if (i == 0 || i == _cached_trajectory.size() - 1)
+            vertex->setFixed(true);
+        vertex->setId(id_counter++);
+        vertex->setEstimate(g2o::SE2(_cached_trajectory[i].x, _cached_trajectory[i].y, _cached_trajectory[i].theta));
+        _optimizer->addVertex(vertex);
+        _trajectory.emplace_back(vertex);
+        // std::cout << "pose: " << _cached_trajectory[i].x << " " << _cached_trajectory[i].y << " " << _cached_trajectory[i].theta << std::endl;
+    }
 
+    for (unsigned int i = 0; i < _cached_time_diffs.size(); ++i)
+    {
+        VertexDouble *vertex = new VertexDouble();
+        vertex->setId(id_counter++);
+        vertex->setEstimate(_cached_time_diffs[i]);
+        _optimizer->addVertex(vertex);
+        _time_diffs.emplace_back(vertex);
+        // std::cout << "time_diff: " << _cached_time_diffs[i] << std::endl;
+    }
+}
+
+void TebOptimizer::getVertices()
+{
+    _cached_trajectory.clear();
+    _cached_time_diffs.clear();
+    for (unsigned int i = 0; i < _trajectory.size(); ++i)
+    {
+        g2o::VertexSE2 *vertex = _trajectory[i];
+        g2o::SE2 pose = vertex->estimate();
+        _cached_trajectory.emplace_back(pose.translation().x(), pose.translation().y(), pose.rotation().angle());
+        // std::cout << "pose: " << pose.translation().x() << " " << pose.translation().y() << " " << pose.rotation().angle() << std::endl;
+    }
+    for (unsigned int i = 0; i < _time_diffs.size(); ++i)
+    {
+        VertexDouble *vertex = _time_diffs[i];
+        _cached_time_diffs.emplace_back(vertex->estimate());
+        // std::cout << "time_diff: " << vertex->estimate() << std::endl;
+    }
+}
 void TebOptimizer::buildGraph(double weight_multiplier)
 {
+    addVelocityEdges();
+    addKinematicsEdges();
 }
+
 void TebOptimizer::clearGraph()
 {
+    _optimizer->clear();
 }
 
 bool TebOptimizer::optimizeGraph()
 {
-    return true;
+    _optimizer->setVerbose(true);
+    _optimizer->initializeOptimization();
+    int iter = _optimizer->optimize(_follower_info->no_inner_iterations);
+    return iter > 0;
 }
+void TebOptimizer::addVelocityEdges()
+{
 
+    Eigen::Matrix2d info = Eigen::Matrix2d::Identity();
+    info(0, 0) = _follower_info->weight_max_vel_x;
+    info(1, 1) = _follower_info->weight_max_vel_theta;
+    for (unsigned int i = 0; i < _cached_time_diffs.size(); ++i)
+    {
+        EdgeVelocity *edge = new EdgeVelocity();
+        edge->setInformation(info);
+        edge->setVertex(0, _trajectory[i]);
+        edge->setVertex(1, _trajectory[i + 1]);
+        edge->setVertex(2, _time_diffs[i]);
+        VelocityMessurement messurement(-_follower_info->max_vel_x_backwards, _follower_info->max_vel_x,
+                                        -_follower_info->max_vel_theta, _follower_info->max_vel_theta, 0.1);
+        edge->setMeasurement(messurement);
+        _optimizer->addEdge(edge);
+    }
+}
+void TebOptimizer::addKinematicsEdges()
+{
+    Eigen::Matrix2d info = Eigen::Matrix2d::Identity();
+    info(0, 0) = _follower_info->weight_kinematics_smooth;
+    info(1, 1) = _follower_info->weight_kinematics_turning_radius;
+    for (unsigned int i = 0; i < _trajectory.size() - 1; i++)
+    {
+        EdgeKinematicCarLike *edge = new EdgeKinematicCarLike();
+        edge->setInformation(info);
+        edge->setVertex(0, _trajectory[i]);
+        edge->setVertex(1, _trajectory[i + 1]);
+        edge->setMeasurement(KinematicMessurement{_follower_info->min_turning_radius});
+        _optimizer->addEdge(edge);
+    }
+}
 void TebOptimizer::autoResize()
 {
     assert(!_cached_time_diffs.empty());
