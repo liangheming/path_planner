@@ -8,7 +8,9 @@
 #include <g2o/core/optimization_algorithm_levenberg.h>
 #include "g2o_edges/edge_velocity.hpp"
 #include "g2o_edges/edge_kinematics.hpp"
+#include "g2o_edges/edge_acceleration.hpp"
 #include <g2o/core/factory.h>
+#include "robot_model.h"
 
 using TebBlockSolver = g2o::BlockSolver<g2o::BlockSolverTraits<-1, -1>>;
 using TebLinearSolver = g2o::LinearSolverCSparse<TebBlockSolver::PoseMatrixType>;
@@ -16,7 +18,7 @@ using TebLinearSolver = g2o::LinearSolverCSparse<TebBlockSolver::PoseMatrixType>
 class TebOptimizer
 {
 public:
-    TebOptimizer(FollowerInfo *follower_info);
+    TebOptimizer(FollowerInfo *follower_info,RobotModel* robot_model);
 
     Pose2E plan(const Pose2Es &initial_trajectory, const Pose2E &start_vel);
 
@@ -44,6 +46,18 @@ public:
 
     void addKinematicsEdges();
 
+    void addAccelerationEdges();
+
+    void addObstacleEdges();
+
+    void clearObstacles();
+
+    void addObstacles(const double &x, const double &y);
+
+    void rebuildKDTree();
+
+    PointCloud2D &mutableObstacles() { return _obstacles; }
+
 private:
     FollowerInfo *_follower_info;
     Pose2E _cached_start_vel;
@@ -52,4 +66,7 @@ private:
     std::vector<g2o::VertexSE2 *> _trajectory;
     std::vector<VertexDouble *> _time_diffs;
     std::shared_ptr<g2o::SparseOptimizer> _optimizer;
+    PointCloud2D _obstacles;
+    KDTree2D _kdtree;
+    RobotModel *_robot_model;
 };

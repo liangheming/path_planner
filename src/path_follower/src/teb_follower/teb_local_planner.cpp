@@ -1,10 +1,10 @@
 #include "teb_local_planner.h"
 
-TebLocalPlanner::TebLocalPlanner(FollowerInfo *follower_info, costmap_2d::Costmap2D *costmap)
+TebLocalPlanner::TebLocalPlanner(FollowerInfo *follower_info, costmap_2d::Costmap2D *costmap, RobotModel *robot_model)
     : _follower_info(follower_info),
       _costmap(costmap),
-      _optimizer(follower_info)
-
+      _robot_model(robot_model),
+      _optimizer(follower_info, robot_model)
 {
 }
 
@@ -93,7 +93,8 @@ void TebLocalPlanner::generateViaPoints()
 }
 void TebLocalPlanner::generateObstacles()
 {
-    _obstacles.clear();
+    // std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+    _optimizer.clearObstacles();
     unsigned int size_x = _costmap->getSizeInCellsX();
     unsigned int size_y = _costmap->getSizeInCellsY();
     double uni_vec_x = cos(_current_pose.theta);
@@ -115,10 +116,14 @@ void TebLocalPlanner::generateObstacles()
                     continue;
                 if (distance > _follower_info->obstacle_behind_ignore_range && (dx * uni_vec_x + dy * uni_vec_y) < 0)
                     continue;
-                _obstacles.emplace_back(wx, wy);
+                _optimizer.addObstacles(wx, wy);
             }
         }
     }
+    _optimizer.rebuildKDTree();
+    // std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+    // std::chrono::milliseconds time_span = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    // std::cout << "obstacle generation time: " << time_span.count() << "ms" << std::endl;
 }
 Pose2E TebLocalPlanner::getLocalTwists()
 {

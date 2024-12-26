@@ -1,6 +1,6 @@
 #include "teb_optimizer.h"
 
-TebOptimizer::TebOptimizer(FollowerInfo *follower_info) : _follower_info(follower_info)
+TebOptimizer::TebOptimizer(FollowerInfo *follower_info, RobotModel *robot_model) : _follower_info(follower_info), _kdtree(2, _obstacles), _robot_model(robot_model)
 {
     std::unique_ptr<TebLinearSolver> linear_solver = std::make_unique<TebLinearSolver>();
     linear_solver->setBlockOrdering(true);
@@ -131,6 +131,8 @@ void TebOptimizer::buildGraph(double weight_multiplier)
 {
     addVelocityEdges();
     addKinematicsEdges();
+    addAccelerationEdges();
+    addObstacleEdges();
 }
 
 void TebOptimizer::clearGraph()
@@ -178,6 +180,41 @@ void TebOptimizer::addKinematicsEdges()
         edge->setMeasurement(KinematicMessurement{_follower_info->min_turning_radius});
         _optimizer->addEdge(edge);
     }
+}
+void TebOptimizer::addAccelerationEdges()
+{
+    Eigen::Matrix2d info = Eigen::Matrix2d::Identity();
+    info(0, 0) = _follower_info->weight_max_acc_x;
+    info(1, 1) = _follower_info->weight_max_acc_theta;
+
+    EdgeAccelerationStart *edge_start = new EdgeAccelerationStart();
+    edge_start->setInformation(info);
+    edge_start->setVertex(0, _trajectory[0]);
+    edge_start->setVertex(1, _trajectory[1]);
+    edge_start->setVertex(2, _time_diffs[0]);
+    AccelerationMessurement messurement(_follower_info->max_acc_x, _follower_info->max_acc_theta, 0.1, 0.1);
+    messurement.cur_vel_lin = _cached_start_vel.x;
+    messurement.cur_vel_theta = _cached_start_vel.theta;
+    edge_start->setMeasurement(messurement);
+    _optimizer->addEdge(edge_start);
+
+    for (unsigned int i = 0; i < _trajectory.size() - 2; ++i)
+    {
+        EdgeAcceleration *edge = new EdgeAcceleration();
+        edge->setInformation(info);
+        edge->setVertex(0, _trajectory[i]);
+        edge->setVertex(1, _trajectory[i + 1]);
+        edge->setVertex(2, _trajectory[i + 2]);
+        edge->setVertex(3, _time_diffs[i]);
+        edge->setVertex(4, _time_diffs[i + 1]);
+        edge->setMeasurement(AccelerationMessurement{_follower_info->max_acc_x, _follower_info->max_acc_theta, 0.1, 0.1});
+        _optimizer->addEdge(edge);
+    }
+}
+
+void TebOptimizer::addObstacleEdges()
+{
+    std::cout << _robot_model->circumRadius() << "||" << _robot_model->inscribedRadius() << std::endl;
 }
 void TebOptimizer::autoResize()
 {
@@ -256,6 +293,22 @@ void TebOptimizer::autoResize()
     //     pose_iter++;
     // }
 }
+
+void TebOptimizer::clearObstacles()
+{
+    _obstacles.clear();
+}
+
+void TebOptimizer::addObstacles(const double &x, const double &y)
+{
+    _obstacles.addPoint(x, y);
+}
+
+void TebOptimizer::rebuildKDTree()
+{
+    _kdtree.buildIndex();
+}
+
 double TebOptimizer::estimateTimeDiff(const Pose2E &p1, const Pose2E &p2)
 {
     double dt_constant_motion = 0.1;

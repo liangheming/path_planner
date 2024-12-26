@@ -1,3 +1,4 @@
+#pragma once
 #include "commons.h"
 #include <stdexcept>
 #include <limits>
@@ -6,6 +7,9 @@ class RobotModel
 {
 public:
     virtual double distanceToPoint(const Pose2E &pose, const Point2D &point) const = 0;
+
+    virtual double inscribedRadius() const = 0;
+    virtual double circumRadius() const = 0;
 };
 
 class CircleRobotModel : public RobotModel
@@ -17,6 +21,8 @@ public:
 
     double distanceToPoint(const Pose2E &pose, const Point2D &point) const override;
     double &radius() { return _radius; }
+    double inscribedRadius() const override { return _radius; }
+    double circumRadius() const override { return _radius; }
 
 private:
     double _radius;
@@ -28,8 +34,8 @@ public:
     PolygonRobotModel(const std::vector<Point2D> &vertices);
 
     double distanceToPoint(const Pose2E &pose, const Point2D &point) const override;
-    double inscribedRadius() const { return _inscriberadius; }
-    double circumRadius() const { return _circumradius; }
+    double inscribedRadius() const override { return _inscriberadius; }
+    double circumRadius() const override { return _circumradius; }
 
 private:
     std::vector<Point2D> _vertices;

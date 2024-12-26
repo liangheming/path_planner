@@ -2,6 +2,7 @@
 #include <cmath>
 #include <vector>
 #include <g2o/core/base_vertex.h>
+#include "third_party/nanoflann.hpp"
 
 class VertexDouble : public g2o::BaseVertex<1, double>
 {
@@ -53,6 +54,46 @@ using Point2Ds = std::vector<Point2D>;
 double pointToLineDistance(const Point2D &point, const Point2D &line_start, const Point2D &line_end);
 
 Point2D nearestPointOnLine(const Point2D &point, const Point2D &line_start, const Point2D &line_end);
+class PointCloud2D
+{
+public:
+    inline size_t kdtree_get_point_count() const
+    {
+        return _points.size();
+    }
+    inline double kdtree_get_pt(const size_t idx, const size_t dim) const
+    {
+        if (dim == 0)
+            return _points[idx].x;
+        else
+            return _points[idx].y;
+    }
+    template <class BBOX>
+    bool kdtree_get_bbox(BBOX & /* bb */) const
+    {
+        return false;
+    }
+    void addPoint(const Point2D &point)
+    {
+        _points.push_back(point);
+    }
+    void addPoint(const double &x, const double &y)
+    {
+        _points.emplace_back(x, y);
+    }
+
+    void clear()
+    {
+        _points.clear();
+    }
+
+    Point2Ds& mutablePoints() { return _points; }
+
+private:
+    Point2Ds _points;
+};
+
+using KDTree2D = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud2D>, PointCloud2D, 2>;
 
 struct FollowerInfo
 {

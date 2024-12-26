@@ -38,8 +38,9 @@ include_directories(
 
 aux_source_directory(src/teb_follower TEB_SRC)
 file(GLOB EDGES_HPP src/teb_follower/g2o_edges/*.hpp)
+set(NANOFLANN_HEADER src/teb_follower/third_party/nanoflann.hpp)
 
-add_executable(path_follower_node src/path_follower_node.cpp src/path_follower_ros.cpp ${TEB_SRC} ${EDGES_HPP})
+add_executable(path_follower_node src/path_follower_node.cpp src/path_follower_ros.cpp ${TEB_SRC} ${EDGES_HPP} ${NANOFLANN_HEADER})
 target_include_directories(path_follower_node PRIVATE ${G2O_INCLUDE_DIR} ${SUITESPARSE_INCLUDE_DIRS})
 target_link_libraries(path_follower_node ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${SUITESPARSE_LIBRARIES})
 

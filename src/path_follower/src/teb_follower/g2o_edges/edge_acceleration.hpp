@@ -52,12 +52,12 @@ public:
         double vel2 = dist2 / dt2->estimate();
 
         int sign_vel = g2o::sign(diff1[0] * cos(v1->estimate().rotation().angle()) + diff1[1] * sin(v1->estimate().rotation().angle()));
-        if(sign_vel==0)
+        if (sign_vel == 0)
             sign_vel = 1;
 
         vel1 *= sign_vel;
         sign_vel = g2o::sign(diff2[0] * cos(v2->estimate().rotation().angle()) + diff2[1] * sin(v2->estimate().rotation().angle()));
-        if(sign_vel==0)
+        if (sign_vel == 0)
             sign_vel = 1;
         vel2 *= sign_vel;
 
@@ -126,5 +126,29 @@ public:
     bool write(std::ostream &os) const override
     {
         return os.good();
+    }
+    void computeError() override
+    {
+        g2o::SE2 v1 = static_cast<g2o::VertexSE2 *>(_vertices[0])->estimate();
+        g2o::SE2 v2 = static_cast<g2o::VertexSE2 *>(_vertices[1])->estimate();
+        double dt = static_cast<VertexDouble *>(_vertices[2])->estimate();
+        Eigen::Vector2d diff = v2.translation() - v1.translation();
+        double dist_diff = diff.norm();
+        double angle_diff = g2o::normalize_theta(v2.rotation().angle() - v1.rotation().angle());
+
+        double vel1 = dist_diff / dt;
+        double vel2 = _measurement.cur_vel_lin;
+
+        int sign_vel = g2o::sign(diff.x() * cos(v1.rotation().angle()) + diff.y() * sin(v1.rotation().angle()));
+        if (sign_vel == 0)
+            sign_vel = 1;
+        vel1 *= sign_vel;
+        double acc_lin = (vel2 - vel1) / dt;
+        _error[0] = penaltyBoundedValue(acc_lin, _measurement.max_acc_vel, _measurement.acc_vel_margin);
+
+        double omega1 = angle_diff / dt;
+        double omega2 = _measurement.cur_vel_theta;
+        double acc_rot = (omega2 - omega1) / dt;
+        _error[1] = penaltyBoundedValue(acc_rot, _measurement.max_acc_theta, _measurement.acc_theta_margin);
     }
 };

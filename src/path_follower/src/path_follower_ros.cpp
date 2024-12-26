@@ -6,11 +6,15 @@ PathFollowerROS::PathFollowerROS(ros::NodeHandle nh) : _nh(nh), _tf_buffer(), _t
     initPublishers();
     initSubscribers();
     initServices();
-    _path_follower = std::make_unique<TebLocalPlanner>(&_follower_info, _costmap_2d_ros.getCostmap());
+    _robot_model = std::shared_ptr<RobotModel>(RobotModelHelper::createRobotModel(_config.footprint));
+    _path_follower = std::make_unique<TebLocalPlanner>(&_follower_info, _costmap_2d_ros.getCostmap(), _robot_model.get());
     ROS_DEBUG("PathFollowerROS initialized");
 }
 void PathFollowerROS::loadParameters()
 {
+
+    _nh.param<std::vector<double>>("footprint", _config.footprint, {0.76, 0.52});
+    ROS_INFO("[PathFollowerROS] Footprint Size: %lu", _config.footprint.size());
 }
 void PathFollowerROS::initPublishers()
 {

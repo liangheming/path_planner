@@ -43,4 +43,5 @@ private:
     Pose2E _initial_pose;
     FollowerInfo _follower_info;
     std::shared_ptr<TebLocalPlanner> _path_follower;
+    std::shared_ptr<RobotModel> _robot_model;
 };
