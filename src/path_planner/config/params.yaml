@@ -35,7 +35,7 @@ path_planner:
   cost_penalty: 2.0 # footprint 的惩罚系数
   change_penalty: 0.01 # 转向的的惩罚系数
   non_straight_penalty: 1.2 # 非直线的惩罚系数
-  reverse_penalty: 2.1 # 倒车的惩罚系数
+  reverse_penalty: 3.0 # 倒车的惩罚系数
   analytic_expansion_ratio: 1.0 # 启发式搜索的比例(每1.0米进行一次启发式搜索)
   analytic_expansion_tolerance: 3.0 # 启发式搜索的阈值（距离目标点的距离3.0米开始启发式搜索）
   max_iterations: 100000 # 最大迭代次数

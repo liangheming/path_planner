@@ -87,7 +87,7 @@ public:
         _points.clear();
     }
 
-    Point2Ds& mutablePoints() { return _points; }
+    Point2Ds &mutablePoints() { return _points; }
 
 private:
     Point2Ds _points;
@@ -99,9 +99,11 @@ struct FollowerInfo
 {
     double ignore_back_range = 0.5;
     double max_follow_range = 4.5;
-    double max_follow_length = 4.0;
+    double max_follow_length = 5.0;
     double viapoint_seperation = -0.1;
     double obstacle_behind_ignore_range = 1.5;
+    double obstacle_search_factory = 2.0;
+    int max_obstacle_num_per_node = 15;
     bool allow_init_backwords = false;
     bool overwrite_orientation = false;
     double dt_ref = 0.2;
@@ -127,8 +129,8 @@ struct FollowerInfo
     double min_obstacle_dist = 0.1;
     double obstacle_inflation_dist = 0.2;
 
-    int no_outer_iterations = 3;
-    int no_inner_iterations = 4;
+    int no_outer_iterations = 4;
+    int no_inner_iterations = 5;
 
     double weight_adapt_factor = 1.5;
 
@@ -145,6 +147,6 @@ struct FollowerInfo
     double weight_shortest_path = 0.1;
     double weight_optimal_time = 2.0;
     double weight_obstacle_collision = 50.0;
-    double weight_obstacle_inflation = 0.1;
+    double weight_obstacle_inflation = 1.0;
     double weight_viapoints = 1.0;
 };

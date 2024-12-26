@@ -20,6 +20,7 @@ public:
     Pose2Es &mutableGlobalPath() { return _global_path; }
 
     Pose2E getLocalTwists();
+    Pose2Es &mutableTrajectory() { return _optimizer.mutableTrajectory(); }
 
 private:
     FollowerInfo *_follower_info;

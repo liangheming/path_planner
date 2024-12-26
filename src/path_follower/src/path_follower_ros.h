@@ -40,6 +40,7 @@ private:
     ros::Subscriber _path_sub;
     ros::Subscriber _initial_pose_sub;
     ros::Publisher _obstacle_pub;
+    ros::Publisher _path_pub;
     Pose2E _initial_pose;
     FollowerInfo _follower_info;
     std::shared_ptr<TebLocalPlanner> _path_follower;

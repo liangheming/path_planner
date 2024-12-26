@@ -9,6 +9,9 @@
 #include "g2o_edges/edge_velocity.hpp"
 #include "g2o_edges/edge_kinematics.hpp"
 #include "g2o_edges/edge_acceleration.hpp"
+#include "g2o_edges/edge_shortest_path.hpp"
+#include "g2o_edges/edge_time_optimal.hpp"
+#include "g2o_edges/edge_obstacles.hpp"
 #include <g2o/core/factory.h>
 #include "robot_model.h"
 
@@ -18,7 +21,7 @@ using TebLinearSolver = g2o::LinearSolverCSparse<TebBlockSolver::PoseMatrixType>
 class TebOptimizer
 {
 public:
-    TebOptimizer(FollowerInfo *follower_info,RobotModel* robot_model);
+    TebOptimizer(FollowerInfo *follower_info, RobotModel *robot_model);
 
     Pose2E plan(const Pose2Es &initial_trajectory, const Pose2E &start_vel);
 
@@ -50,6 +53,10 @@ public:
 
     void addObstacleEdges();
 
+    void addShortestPathEdges();
+
+    void addTimeOptimalEdges();
+
     void clearObstacles();
 
     void addObstacles(const double &x, const double &y);
@@ -57,6 +64,8 @@ public:
     void rebuildKDTree();
 
     PointCloud2D &mutableObstacles() { return _obstacles; }
+
+    std::vector<Pose2E> &mutableTrajectory() { return _cached_trajectory; }
 
 private:
     FollowerInfo *_follower_info;

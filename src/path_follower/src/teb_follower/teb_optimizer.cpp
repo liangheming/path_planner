@@ -74,10 +74,10 @@ bool TebOptimizer::optimize()
             return false;
         }
         weight_multiplier *= _follower_info->weight_adapt_factor;
-        // std::cout << "================iteration: " << i << " weight_multiplier: " << weight_multiplier<<" =================" << std::endl;
         getVertices();
         clearGraph();
     }
+
     return true;
 }
 void TebOptimizer::setVertices()
@@ -132,6 +132,8 @@ void TebOptimizer::buildGraph(double weight_multiplier)
     addVelocityEdges();
     addKinematicsEdges();
     addAccelerationEdges();
+    addShortestPathEdges();
+    addTimeOptimalEdges();
     addObstacleEdges();
 }
 
@@ -142,7 +144,7 @@ void TebOptimizer::clearGraph()
 
 bool TebOptimizer::optimizeGraph()
 {
-    _optimizer->setVerbose(true);
+    _optimizer->setVerbose(false);
     _optimizer->initializeOptimization();
     int iter = _optimizer->optimize(_follower_info->no_inner_iterations);
     return iter > 0;
@@ -211,10 +213,67 @@ void TebOptimizer::addAccelerationEdges()
         _optimizer->addEdge(edge);
     }
 }
-
 void TebOptimizer::addObstacleEdges()
 {
-    std::cout << _robot_model->circumRadius() << "||" << _robot_model->inscribedRadius() << std::endl;
+    double inscribe_radius = _robot_model->inscribedRadius();
+    double circum_radius = _robot_model->circumRadius();
+    double search_radius = (inscribe_radius + _follower_info->min_obstacle_dist) * _follower_info->obstacle_search_factory;
+    search_radius = std::max(search_radius, (circum_radius + _follower_info->obstacle_inflation_dist) * 1.5);
+    std::vector<nanoflann::ResultItem<uint32_t, double>> results;
+    std::vector<Point2D> &obstacle_points = _obstacles.mutablePoints();
+
+    Eigen::Matrix2d info = Eigen::Matrix2d::Identity();
+    info(0, 0) = _follower_info->weight_obstacle_collision;
+    info(1, 1) = _follower_info->weight_obstacle_inflation;
+    for (unsigned int i = 0; i < _trajectory.size(); ++i)
+    {
+        results.clear();
+        double query_points[2] = {_trajectory[i]->estimate().translation().x(), _trajectory[i]->estimate().translation().y()};
+        _kdtree.radiusSearch(query_points, search_radius, results);
+        int num_obstacles = std::min(int(results.size()), _follower_info->max_obstacle_num_per_node);
+        if (num_obstacles < 1)
+            continue;
+        for (nanoflann::ResultItem<uint32_t, double> &item : results)
+        {
+            Point2D *obs_ptr = &(obstacle_points[item.first]);
+            ObstacleMessurement messurement(
+                _follower_info->min_obstacle_dist,
+                _follower_info->obstacle_inflation_dist,
+                0.05,
+                0.1,
+                _robot_model,
+                obs_ptr);
+            EdgeObstacle *edge = new EdgeObstacle();
+            edge->setInformation(info);
+            edge->setMeasurement(messurement);
+            edge->setVertex(0, _trajectory[i]);
+            _optimizer->addEdge(edge);
+        }
+    }
+}
+void TebOptimizer::addShortestPathEdges()
+{
+    Eigen::Matrix<double, 1, 1> info = Eigen::Matrix<double, 1, 1>::Identity() * _follower_info->weight_shortest_path;
+
+    for (unsigned int i = 0; i < _trajectory.size() - 1; ++i)
+    {
+        EdgeShortestPath *edge = new EdgeShortestPath();
+        edge->setInformation(info);
+        edge->setVertex(0, _trajectory[i]);
+        edge->setVertex(1, _trajectory[i + 1]);
+        _optimizer->addEdge(edge);
+    }
+}
+void TebOptimizer::addTimeOptimalEdges()
+{
+    Eigen::Matrix<double, 1, 1> info = Eigen::Matrix<double, 1, 1>::Identity() * _follower_info->weight_optimal_time;
+    for (unsigned int i = 0; i < _time_diffs.size() - 1; ++i)
+    {
+        EdgeTimeOptimal *edge = new EdgeTimeOptimal();
+        edge->setInformation(info);
+        edge->setVertex(0, _time_diffs[i]);
+        _optimizer->addEdge(edge);
+    }
 }
 void TebOptimizer::autoResize()
 {
@@ -293,22 +352,18 @@ void TebOptimizer::autoResize()
     //     pose_iter++;
     // }
 }
-
 void TebOptimizer::clearObstacles()
 {
     _obstacles.clear();
 }
-
 void TebOptimizer::addObstacles(const double &x, const double &y)
 {
     _obstacles.addPoint(x, y);
 }
-
 void TebOptimizer::rebuildKDTree()
 {
     _kdtree.buildIndex();
 }
-
 double TebOptimizer::estimateTimeDiff(const Pose2E &p1, const Pose2E &p2)
 {
     double dt_constant_motion = 0.1;

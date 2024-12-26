@@ -93,7 +93,6 @@ void TebLocalPlanner::generateViaPoints()
 }
 void TebLocalPlanner::generateObstacles()
 {
-    // std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
     _optimizer.clearObstacles();
     unsigned int size_x = _costmap->getSizeInCellsX();
     unsigned int size_y = _costmap->getSizeInCellsY();
@@ -121,9 +120,7 @@ void TebLocalPlanner::generateObstacles()
         }
     }
     _optimizer.rebuildKDTree();
-    // std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-    // std::chrono::milliseconds time_span = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    // std::cout << "obstacle generation time: " << time_span.count() << "ms" << std::endl;
+   
 }
 Pose2E TebLocalPlanner::getLocalTwists()
 {
