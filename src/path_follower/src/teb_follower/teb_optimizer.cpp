@@ -62,6 +62,7 @@ bool TebOptimizer::optimize()
 {
     bool success = false;
     double weight_multiplier = 1.0;
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     for (int i = 0; i < _follower_info->no_outer_iterations; ++i)
     {
         autoResize();
@@ -77,6 +78,9 @@ bool TebOptimizer::optimize()
         getVertices();
         clearGraph();
     }
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    std::chrono::milliseconds time_used = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+    std::cout << "optimize time used: " << time_used.count() << "ms" << std::endl;
 
     return true;
 }
