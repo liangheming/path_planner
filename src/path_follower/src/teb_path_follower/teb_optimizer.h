@@ -36,12 +36,18 @@ public:
     std::vector<Point2D *> &mutableAffectedObstacles() { return _affected_obstacles; }
     std::vector<Point2E> &mutableTrajectory() { return _cached_trajectory; }
 
+    void initTrajectory(std::vector<Point2E> &trajectory);
+
+    bool optimizeTrajectory();
+
 private:
+    double esitmateTimediff(const Point2E &p1, const Point2E &p2);
+
     void cacheToVertices();
 
     void verticesToCache();
 
-    void buildGraph();
+    void buildGraph(const int &iteration);
 
     bool optimizeGraph();
 

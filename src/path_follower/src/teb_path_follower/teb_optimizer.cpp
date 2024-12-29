@@ -18,6 +18,69 @@ void TebOptimizer::initOptimizer()
     _optimizer->initMultiThreading();
 }
 
+double TebOptimizer::esitmateTimediff(const Point2E &p1, const Point2E &p2)
+{
+    double dt_constant_motion = 0.1;
+    Point2E delta = Point2E::delta(p1, p2);
+    if (_info->max_vel_forward > 0)
+        std::max(dt_constant_motion, delta.translation().norm() / _info->max_vel_forward);
+    if (_info->max_vel_rotation > 0)
+        std::max(dt_constant_motion, std::abs(delta.angle() / _info->max_vel_rotation));
+    return dt_constant_motion;
+}
+
+void TebOptimizer::initTrajectory(std::vector<Point2E> &trajectory)
+{
+    _cached_trajectory.clear();
+    _cached_trajectory.assign(trajectory.begin(), trajectory.end());
+    assert(_cached_trajectory.size() > 1);
+    const Point2E &start = _cached_trajectory.front();
+    const Point2E &goal = _cached_trajectory.back();
+    if (_info->overwrite_orientation)
+    {
+        bool backward = false;
+        Eigen::Vector2d start_dir = start.direction();
+        Eigen::Vector2d move_dir = Point2E::delta(start, goal).translation().normalized();
+        if (start_dir.dot(move_dir) < 0)
+            backward = true;
+        for (unsigned int i = 1; i < _cached_trajectory.size() - 1; ++i)
+        {
+            double dx = _cached_trajectory[i + 1].x - _cached_trajectory[i].x;
+            double dy = _cached_trajectory[i + 1].y - _cached_trajectory[i].y;
+            _cached_trajectory[i].theta = std::atan2(dy, dx);
+            if (backward && _info->allow_init_backwords)
+                _cached_trajectory[i].theta += M_PI;
+            _cached_trajectory[i].theta = normalize_theta(_cached_trajectory[i].theta);
+        }
+    }
+    _cached_timediffs.clear();
+    for (unsigned int i = 1; i < _cached_trajectory.size(); ++i)
+    {
+        double dt = esitmateTimediff(_cached_trajectory[i - 1], _cached_trajectory[i]);
+        _cached_timediffs.push_back(dt);
+    }
+}
+
+bool TebOptimizer::optimizeTrajectory()
+{
+
+    for (int iter = 0; iter < _info->no_outer_iterations; ++iter)
+    {
+        autoResize();
+        assert(_cached_trajectory.size() == _cached_timediffs.size() + 1);
+        cacheToVertices();
+        buildGraph(iter);
+        if (!optimizeGraph())
+        {
+            clearGraph();
+            return false;
+        }
+        verticesToCache();
+        clearGraph();
+    }
+    return true;
+}
+
 void TebOptimizer::cacheToVertices()
 {
     _trajectory.clear();
@@ -56,8 +119,15 @@ void TebOptimizer::verticesToCache()
     }
 }
 
-void TebOptimizer::buildGraph()
+void TebOptimizer::buildGraph(const int &iteration)
 {
+    addVelocityEdges();
+    addAccelerationEdges();
+    addKineticEdges();
+    addObstacleEdges();
+    addViapointEdges();
+    addShortestPathEdges();
+    addTimeOptimalEdges();
 }
 
 bool TebOptimizer::optimizeGraph()
@@ -212,7 +282,6 @@ void TebOptimizer::addObstacleEdges()
             _optimizer->addEdge(edge);
         }
     }
-    
 }
 void TebOptimizer::addKineticEdges()
 {

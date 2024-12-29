@@ -33,8 +33,12 @@ catkin_package(
 
 )
 
-aux_source_directory(src/teb_follower SOURCE_DIR)
-set(THIRD_SRC src/third_party/nanoflann.hpp)
+aux_source_directory(src/teb_path_follower SOURCE_DIR)
+file(GLOB EDGES_SOURCE src/teb_path_follower/g2o_edges/*.hpp)
+list(APPEND SOURCE_DIR ${EDGES_SOURCE})
+list(APPEND SOURCE_DIR src/third_party/nanoflann.hpp)
+
+message(STATUS "SOURCE_DIR ${SOURCE_DIR}")
 
 include_directories(
 # include
