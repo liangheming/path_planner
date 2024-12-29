@@ -237,8 +237,10 @@ void TebOptimizer::addObstacleEdges()
         int num_obstacles = std::min(int(results.size()), _follower_info->max_obstacle_num_per_node);
         if (num_obstacles < 1)
             continue;
-        for (nanoflann::ResultItem<uint32_t, double> &item : results)
+        
+        for (unsigned int j = 0; j < num_obstacles; ++j)
         {
+            nanoflann::ResultItem<uint32_t, double> &item = results[j];
             Point2D *obs_ptr = &(obstacle_points[item.first]);
             ObstacleMessurement messurement(
                 _follower_info->min_obstacle_dist,

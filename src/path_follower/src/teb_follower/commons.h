@@ -103,7 +103,7 @@ struct FollowerInfo
     double viapoint_seperation = -0.1;
     double obstacle_behind_ignore_range = 1.5;
     double obstacle_search_factory = 1.5;
-    int max_obstacle_num_per_node = 5;
+    int max_obstacle_num_per_node = 10;
     bool allow_init_backwords = false;
     bool overwrite_orientation = false;
     double dt_ref = 0.2;
