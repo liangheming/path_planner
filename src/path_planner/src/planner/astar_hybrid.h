@@ -82,4 +82,7 @@ private:
     NodeGraph _graph;
     std::vector<float> _obstacle_heuristic_lookup_table;
     ObstacleHeuristicQueue _obstacle_heuristic_queue;
+
+    Coordinate _start_coord;
+    Coordinate _goal_coord;
 };

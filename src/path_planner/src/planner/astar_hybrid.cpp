@@ -391,6 +391,8 @@ float AstarHybrid::getTravelCost(NodePtr &from, NodePtr &to)
 
 bool AstarHybrid::createPath(const Coordinate &start, const Coordinate &goal, Coordinates &path, int &iterations)
 {
+    _start_coord = start;
+    _goal_coord = goal;
     unsigned int s_x_in_cell, s_y_in_cell, g_x_in_cell, g_y_in_cell;
     float s_theta_in_cell, g_theta_in_cell;
 
@@ -421,7 +423,12 @@ bool AstarHybrid::createPath(const Coordinate &start, const Coordinate &goal, Co
     Coordinates temp_path;
     bool search_success = createPath(temp_path, iterations);
     if (search_success)
+    {
         path = fromCellToWorld(temp_path);
+        path.front() = _goal_coord;
+        path.back() = _start_coord;
+    }
+
     return search_success;
 }
 bool AstarHybrid::createPath(Coordinates &path, int &iterations)
