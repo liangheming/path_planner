@@ -81,6 +81,7 @@ public:
     static double distance(const Point2D &p1, const Point2D &p2);
 
     static Point2D delta(const Point2D &p1, const Point2D &p2);
+    Eigen::Vector2d toVector() const { return Eigen::Vector2d(x, y); }
 
     double x;
     double y;
@@ -234,7 +235,7 @@ struct FollowerInfo
 
     double max_acc_travel = 1.0;
     double max_acc_side = 0.0;
-    double margin_max_acc = 0.1;
+    double margin_max_acc_travel = 0.1;
 
     double max_acc_rotation = 1.57;
     double margin_max_acc_rotation = 0.1;

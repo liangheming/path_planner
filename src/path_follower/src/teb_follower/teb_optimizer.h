@@ -5,6 +5,15 @@
 #include <g2o/core/block_solver.h>
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
 #include <g2o/core/optimization_algorithm_levenberg.h>
+
+#include "g2o_edges/edge_velocity.hpp"
+#include "g2o_edges/edge_acceleration.hpp"
+#include "g2o_edges/edge_obstacle.hpp"
+#include "g2o_edges/edge_shortest_path.hpp"
+#include "g2o_edges/edge_time_optimal.hpp"
+#include "g2o_edges/edge_kinematics.hpp"
+#include "g2o_edges/edge_via_point.hpp"
+
 using TebBlockSolver = g2o::BlockSolver<g2o::BlockSolverTraits<-1, -1>>;
 using TebLinearSolver = g2o::LinearSolverCSparse<TebBlockSolver::PoseMatrixType>;
 
@@ -23,7 +32,8 @@ public:
     void addViaPoint(const double &x, const double &y) { _via_points.emplace_back(x, y); }
     std::pair<bool, Velocity> &mutableStartVelocity() { return _start_vel; }
     std::pair<bool, Velocity> &mutableGoalVelocity() { return _goal_vel; }
-    std::vector<Point2D> &mutableObstacles() { return _obstacles.points(); }
+    std::vector<Point2D> &mutableCanidateObstacles() { return _obstacles.points(); }
+    std::vector<Point2D *> &mutableAffectedObstacles() { return _affected_obstacles; }
     std::vector<Point2E> &mutableTrajectory() { return _cached_trajectory; }
 
 private:
@@ -38,6 +48,14 @@ private:
     void autoResize();
     void clearGraph() { _optimizer->clear(); }
 
+    void addVelocityEdges();
+    void addAccelerationEdges();
+    void addObstacleEdges();
+    void addKineticEdges();
+    void addShortestPathEdges();
+    void addTimeOptimalEdges();
+    void addViapointEdges();
+
     FollowerInfo *_info;
     RobotModel *_robot;
     std::vector<double> _cached_timediffs;
@@ -49,5 +67,6 @@ private:
     std::pair<bool, Velocity> _start_vel;
     std::pair<bool, Velocity> _goal_vel;
     std::vector<Point2D> _via_points;
+    std::vector<Point2D *> _affected_obstacles;
     KDTree2D _kdtree;
 };

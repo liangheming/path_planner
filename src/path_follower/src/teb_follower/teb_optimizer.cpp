@@ -126,5 +126,139 @@ void TebOptimizer::autoResize()
         if (!changed || _cached_timediffs.size() >= _info->max_samples)
             break;
     }
+}
+
+void TebOptimizer::addVelocityEdges()
+{
+    if (_info->weight_max_vel_travel == 0 && _info->weight_max_vel_rotation == 0)
+        return;
+    Eigen::Matrix2d info = Eigen::Matrix2d::Identity();
+    info(0, 0) = _info->weight_max_vel_travel;
+    info(1, 1) = _info->weight_max_vel_rotation;
+    for (unsigned int i = 0; i < _timediffs.size(); i++)
+    {
+        EdgeVelocity *edge = new EdgeVelocity(_info);
+        edge->setVertex(0, _trajectory[i]);
+        edge->setVertex(1, _trajectory[i + 1]);
+        edge->setVertex(2, _timediffs[i]);
+        edge->setInformation(info);
+        _optimizer->addEdge(edge);
+    }
+}
+void TebOptimizer::addAccelerationEdges()
+{
+    if (_info->weight_max_acc_travel == 0 && _info->weight_max_acc_rotation == 0)
+        return;
+    Eigen::Matrix2d info = Eigen::Matrix2d::Identity();
+    info(0, 0) = _info->weight_max_acc_travel;
+    info(1, 1) = _info->weight_max_acc_rotation;
+
+    if (_start_vel.first && _timediffs.size() > 0)
+    {
+        EdgeAccelerationStart *edge = new EdgeAccelerationStart(_info, _start_vel.second);
+        edge->setVertex(0, _trajectory[0]);
+        edge->setVertex(1, _trajectory[1]);
+        edge->setVertex(2, _timediffs[0]);
+        edge->setInformation(info);
+        _optimizer->addEdge(edge);
+    }
+    for (unsigned int i = 0; i < _timediffs.size() - 1; i++)
+    {
+        EdgeAcceleration *edge = new EdgeAcceleration(_info);
+        edge->setVertex(0, _trajectory[i]);
+        edge->setVertex(1, _trajectory[i + 1]);
+        edge->setVertex(2, _trajectory[i + 2]);
+        edge->setVertex(3, _timediffs[i]);
+        edge->setVertex(4, _timediffs[i + 1]);
+        edge->setInformation(info);
+        _optimizer->addEdge(edge);
+    }
+    if (_goal_vel.first && _timediffs.size() > 0)
+    {
+        EdgeAccelerationGoal *edge = new EdgeAccelerationGoal(_info, _goal_vel.second);
+        edge->setVertex(0, _trajectory[_trajectory.size() - 2]);
+        edge->setVertex(1, _trajectory[_trajectory.size() - 1]);
+        edge->setVertex(2, _timediffs[_timediffs.size() - 1]);
+        edge->setInformation(info);
+        _optimizer->addEdge(edge);
+    }
+}
+void TebOptimizer::addObstacleEdges()
+{
+    _affected_obstacles.clear();
+    double circum_radius = _robot->circumRadius();
+    double affect_radius = (circum_radius + _info->obstacle_inflation_dist) * _info->obstacle_search_factory;
+    int max_search_number = _info->obstacle_search_number;
+    std::vector<nanoflann::ResultItem<uint32_t, double>> results;
+    std::vector<Point2D> &obstacle_points = _obstacles.points();
+    Eigen::Matrix2d info = Eigen::Matrix2d::Identity();
+    info(0, 0) = _info->weight_obstacle_collision;
+    info(1, 1) = _info->weight_obstacle_inflation;
+    for (unsigned int i = 0; i < _trajectory.size(); ++i)
+    {
+        results.clear();
+        double query_points[2] = {_trajectory[i]->estimate().x, _trajectory[i]->estimate().y};
+        _kdtree.radiusSearch(query_points, affect_radius, results);
+        int num_obstacles = std::min(max_search_number, (int)results.size());
+        if (num_obstacles == 0)
+            continue;
+        for (unsigned int j = 0; j < num_obstacles; ++j)
+        {
+            nanoflann::ResultItem<uint32_t, double> &item = results[j];
+            EdgeObstacle *edge = new EdgeObstacle(&obstacle_points[item.first]);
+            edge->setInfoParameters(_robot, _info);
+            edge->setVertex(0, _trajectory[i]);
+            edge->setInformation(info);
+            _optimizer->addEdge(edge);
+        }
+    }
     
+}
+void TebOptimizer::addKineticEdges()
+{
+    if (_info->weight_kinematics_smooth == 0 && _info->weight_kinematics_turning_radius == 0)
+        return;
+    Eigen::Matrix2d info = Eigen::Matrix2d::Identity();
+    info(0, 0) = _info->weight_kinematics_smooth;
+    info(1, 1) = _info->weight_kinematics_turning_radius;
+    for (unsigned int i = 0; i < _trajectory.size() - 1; i++)
+    {
+        EdgeKinematics *edge = new EdgeKinematics(_info);
+        edge->setVertex(0, _trajectory[i]);
+        edge->setVertex(1, _trajectory[i + 1]);
+        edge->setInformation(info);
+        _optimizer->addEdge(edge);
+    }
+}
+void TebOptimizer::addShortestPathEdges()
+{
+    if (_info->weight_shortest_path == 0)
+        return;
+    Eigen::Matrix<double, 1, 1> info = Eigen::Matrix<double, 1, 1>::Identity() * _info->weight_shortest_path;
+    for (unsigned int i = 0; i < _trajectory.size() - 1; i++)
+    {
+        EdgeShortestPath *edge = new EdgeShortestPath();
+        edge->setVertex(0, _trajectory[i]);
+        edge->setVertex(1, _trajectory[i + 1]);
+        edge->setInformation(info);
+        _optimizer->addEdge(edge);
+    }
+}
+void TebOptimizer::addTimeOptimalEdges()
+{
+    if (_info->weight_optimal_time == 0)
+        return;
+    Eigen::Matrix<double, 1, 1> info = Eigen::Matrix<double, 1, 1>::Identity() * _info->weight_optimal_time;
+    for (unsigned int i = 0; i < _timediffs.size() - 1; i++)
+    {
+        EdgeTimeOptimal *edge = new EdgeTimeOptimal();
+        edge->setVertex(0, _timediffs[i]);
+        edge->setInformation(info);
+        _optimizer->addEdge(edge);
+    }
+}
+void TebOptimizer::addViapointEdges()
+{
+    if (_info->weight_viapoints == 0)
+        return;
 }
