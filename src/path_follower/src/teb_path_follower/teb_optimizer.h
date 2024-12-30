@@ -35,12 +35,20 @@ public:
     std::vector<Point2D> &mutableCanidateObstacles() { return _obstacles.points(); }
     std::vector<Point2D *> &mutableAffectedObstacles() { return _affected_obstacles; }
     std::vector<Point2E> &mutableTrajectory() { return _cached_trajectory; }
+    std::vector<double> &mutableTimediffs() { return _cached_timediffs; }
 
-    void initTrajectory(std::vector<Point2E> &trajectory);
+    bool smoothTrajectory(std::vector<Point2E> &trajectory);
 
-    bool optimizeTrajectory();
+    void clearCached()
+    {
+        _cached_trajectory.clear();
+        _cached_timediffs.clear();
+    }
 
 private:
+    void pruneTrajectory(const Point2E &start, const Point2E &end);
+    void initTrajectory(std::vector<Point2E> &trajectory);
+    bool optimizeTrajectory();
     double esitmateTimediff(const Point2E &p1, const Point2E &p2);
 
     void cacheToVertices();

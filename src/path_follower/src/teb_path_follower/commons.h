@@ -200,9 +200,18 @@ using KDTree2D = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adapto
 
 struct FollowerInfo
 {
+
+    int look_forward_poses_for_control = 1;
+    double force_reinit_new_goal_dist = 0.1;
+    double force_reinit_new_goal_angular = 0.1;
+
+    double stop_vel_travel = 0.1;
+    double stop_vel_rotation = 0.1;
+
     double ignore_back_range = 0.5;
     double max_follow_range = 4.5;
     double max_follow_length = 5.0;
+
     double viapoint_seperation = -0.1;
     double obstacle_behind_ignore_range = 1.5;
     double obstacle_search_factory = 1.5;

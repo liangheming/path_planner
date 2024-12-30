@@ -4,6 +4,8 @@ TebOptimizer::TebOptimizer(FollowerInfo *follower_info, RobotModel *robot_model)
     : _info(follower_info), _robot(robot_model), _kdtree(2, _obstacles)
 {
     initOptimizer();
+    _cached_trajectory.clear();
+    _cached_timediffs.clear();
 }
 
 void TebOptimizer::initOptimizer()
@@ -29,36 +31,60 @@ double TebOptimizer::esitmateTimediff(const Point2E &p1, const Point2E &p2)
     return dt_constant_motion;
 }
 
+bool TebOptimizer::smoothTrajectory(std::vector<Point2E> &trajectory)
+{
+    const Point2E &start_pose = trajectory.front();
+    const Point2E &end_pose = trajectory.back();
+    if (!_cached_trajectory.empty())
+    {
+        Point2E delta_to_last_goal = Point2E::delta(end_pose, _cached_trajectory.back());
+        if (delta_to_last_goal.translation().norm() < _info->force_reinit_new_goal_dist && abs(delta_to_last_goal.angle()) < _info->force_reinit_new_goal_angular)
+            pruneTrajectory(start_pose, end_pose);
+        else
+            initTrajectory(trajectory);
+    }
+    else
+        initTrajectory(trajectory);
+    return optimizeTrajectory();
+}
 void TebOptimizer::initTrajectory(std::vector<Point2E> &trajectory)
 {
     _cached_trajectory.clear();
     _cached_trajectory.assign(trajectory.begin(), trajectory.end());
     assert(_cached_trajectory.size() > 1);
-    const Point2E &start = _cached_trajectory.front();
-    const Point2E &goal = _cached_trajectory.back();
-    if (_info->overwrite_orientation)
-    {
-        bool backward = false;
-        Eigen::Vector2d start_dir = start.direction();
-        Eigen::Vector2d move_dir = Point2E::delta(start, goal).translation().normalized();
-        if (start_dir.dot(move_dir) < 0)
-            backward = true;
-        for (unsigned int i = 1; i < _cached_trajectory.size() - 1; ++i)
-        {
-            double dx = _cached_trajectory[i + 1].x - _cached_trajectory[i].x;
-            double dy = _cached_trajectory[i + 1].y - _cached_trajectory[i].y;
-            _cached_trajectory[i].theta = std::atan2(dy, dx);
-            if (backward && _info->allow_init_backwords)
-                _cached_trajectory[i].theta += M_PI;
-            _cached_trajectory[i].theta = normalize_theta(_cached_trajectory[i].theta);
-        }
-    }
     _cached_timediffs.clear();
     for (unsigned int i = 1; i < _cached_trajectory.size(); ++i)
     {
         double dt = esitmateTimediff(_cached_trajectory[i - 1], _cached_trajectory[i]);
         _cached_timediffs.push_back(dt);
     }
+}
+
+void TebOptimizer::pruneTrajectory(const Point2E &start, const Point2E &end)
+{
+    if (_cached_trajectory.empty())
+        return;
+    double cached_dist = Point2E::distance(start, _cached_trajectory[0]);
+    double dist;
+    int nearest_idx = 0;
+    for (unsigned int i = 1; i < _cached_trajectory.size() - 1; ++i)
+    {
+        dist = Point2E::distance(start, _cached_trajectory[i]);
+        if (dist < cached_dist)
+        {
+            nearest_idx = i;
+            cached_dist = dist;
+        }
+        else
+            break;
+    }
+    if (nearest_idx > 0)
+    {
+        _cached_trajectory.erase(_cached_trajectory.begin() + 1, _cached_trajectory.begin() + nearest_idx + 1);
+        _cached_timediffs.erase(_cached_timediffs.begin() + 1, _cached_timediffs.begin() + nearest_idx + 1);
+    }
+    _cached_trajectory.front() = start;
+    _cached_trajectory.back() = end;
 }
 
 bool TebOptimizer::optimizeTrajectory()
@@ -137,7 +163,8 @@ bool TebOptimizer::optimizeGraph()
 
 void TebOptimizer::autoResize()
 {
-    if (_cached_timediffs.size() < 2)
+    // 如果只有两个轨迹点，则时间间隔在合理范围以内，则直接不进行时间均衡
+    if (_cached_trajectory.size() <= 2 && (_cached_timediffs[0] >= _info->dt_ref - _info->dt_std && _cached_timediffs[0] <= _info->dt_ref + _info->dt_std))
         return;
     /**
      * 删除时间间隔较小的节点
@@ -162,7 +189,7 @@ void TebOptimizer::autoResize()
     }
     assert(timediffs_iter == _cached_timediffs.end() && trajectory_iter == _cached_trajectory.end());
     double last_dt = _cached_timediffs.back();
-    if (last_dt < _info->dt_ref - _info->dt_std)
+    if (last_dt < _info->dt_ref - _info->dt_std && _cached_trajectory.size() > 2)
     {
         _cached_timediffs.erase(_cached_timediffs.end() - 1);
         _cached_trajectory.erase(_cached_trajectory.end() - 2);
