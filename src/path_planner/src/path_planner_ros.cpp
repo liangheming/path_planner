@@ -105,7 +105,7 @@ void PathPlannerROS::initialPoseCallback(const geometry_msgs::PoseWithCovariance
     if (!_is_start_set)
         _is_start_set = true;
     float start_yaw = tf::getYaw(msg->pose.pose.orientation);
-    ROS_INFO("start_point x:%f, y:%f, yaw: %f", _temp_start_pose.position.x, _temp_start_pose.position.y, start_yaw);
+    // ROS_INFO("start_point x:%f, y:%f, yaw: %f", _temp_start_pose.position.x, _temp_start_pose.position.y, start_yaw);
 }
 void PathPlannerROS::goalSetCallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
@@ -126,8 +126,8 @@ void PathPlannerROS::goalSetCallback(const geometry_msgs::PoseStamped::ConstPtr 
     goal.theta = static_cast<int>(tf::getYaw(_temp_goal_pose.orientation) * 100) / 100.0f;
   
 
-    ROS_INFO("start_point x:%f, y:%f, yaw: %f", start.x, start.y, start.theta);
-    ROS_INFO("goal_point x:%f, y:%f, yaw: %f", goal.x, goal.y, goal.theta);
+    // ROS_INFO("start_point x:%f, y:%f, yaw: %f", start.x, start.y, start.theta);
+    // ROS_INFO("goal_point x:%f, y:%f, yaw: %f", goal.x, goal.y, goal.theta);
     Coordinates path;
     int iterations;
     std::chrono::time_point<std::chrono::steady_clock> tic = std::chrono::steady_clock::now();

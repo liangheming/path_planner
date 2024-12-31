@@ -241,4 +241,5 @@ bool TebFollower::getVelocityCmd(Velocity &cmd_vel)
     cmd_vel.x = distance / dt;
     cmd_vel.theta = delta_angel / dt;
     cmd_vel.y = 0;
+    return true;
 }

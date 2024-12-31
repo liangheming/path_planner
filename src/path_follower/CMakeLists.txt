@@ -22,6 +22,9 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   roscpp
   std_msgs
+  costmap_2d
+  tf2_ros
+  tf
 )
 
 # ${G2O_INCLUDE_DIR} ${G2O_LIBRARIES}
@@ -49,5 +52,8 @@ include_directories(
 )
 
 
-add_executable(single_test src/single_test.cpp ${SOURCE_DIR})
-target_link_libraries(single_test ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${SUITESPARSE_LIBRARIES})
+add_executable(path_follower_node src/path_follower_node.cpp src/path_follower_ros.cpp ${SOURCE_DIR})
+target_link_libraries(path_follower_node ${catkin_LIBRARIES} ${G2O_LIBRARIES} ${SUITESPARSE_LIBRARIES})
+
+add_executable(tf_pub_once_node src/tf_pub_once_node.cpp)
+target_link_libraries(tf_pub_once_node ${catkin_LIBRARIES})

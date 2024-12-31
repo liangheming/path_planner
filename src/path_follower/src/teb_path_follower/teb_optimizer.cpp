@@ -303,6 +303,7 @@ void TebOptimizer::addObstacleEdges()
         {
             nanoflann::ResultItem<uint32_t, double> &item = results[j];
             EdgeObstacle *edge = new EdgeObstacle(&obstacle_points[item.first]);
+            _affected_obstacles.push_back(&obstacle_points[item.first]);
             edge->setInfoParameters(_robot, _info);
             edge->setVertex(0, _trajectory[i]);
             edge->setInformation(info);

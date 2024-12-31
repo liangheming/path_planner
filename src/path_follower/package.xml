@@ -19,6 +19,9 @@
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  <depend>tf</depend>
+  <depend>tf2_ros</depend>
+  <depend>costmap_2d</depend>
 
 
   <export>

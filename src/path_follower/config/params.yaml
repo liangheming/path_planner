@@ -1,0 +1,113 @@
+follower_costmap:
+  map_type: costmap
+  global_frame: map
+  robot_base_frame: move_base
+
+  footprint: [[-0.36, -0.250], [-0.36, 0.250], [0.36, 0.250], [0.36, -0.250]]
+
+  update_frequency: 10.0
+  publish_frequency: 5.0
+  transform_tolerance: 0.5
+
+  static_map: false
+  rolling_window: true
+  width: 10
+  height: 10
+  resolution: 0.05
+
+  static_layer:
+    enabled: true
+    track_unknown_space: true
+    map_topic: "/map"
+  inflation_layer:
+    enabled: true
+    cost_scaling_factor: 8.0
+    inflation_radius: 0.5
+
+  plugins:
+    - { name: static_layer, type: "costmap_2d::StaticLayer" }
+    - { name: inflation_layer, type: "costmap_2d::InflationLayer" }
+
+collision:
+  footprint: [0.72, 0.50]
+
+path_follower:
+  look_forward_poses_for_control: 1
+  force_reinit_new_goal_dist: 0.1
+  force_reinit_new_goal_angular: 0.1
+
+  stop_vel_travel: 0.1
+  stop_vel_rotation: 0.1
+
+  ignore_back_range: 0.5
+  max_follow_range: 6.0
+  max_follow_length: 5.0
+
+  viapo_seperation: -0.1
+  obstacle_behind_ignore_range: 1.5
+  obstacle_search_factory: 1.5
+
+  obstacle_collision_dist: 0.1
+  margin_obstacle_collision: 0.05
+  obstacle_inflation_dist: 0.2
+  margin_obstacle_inflation: 0.1
+
+  obstacle_search_number: 10
+
+  exact_arc_length: false
+  allow_init_backwords: false
+  overwrite_orientation: false
+
+  dt_ref: 0.2
+  dt_std: 0.1
+
+  min_samples: 16
+  max_samples: 64
+
+  max_vel_forward: 1.5
+  max_vel_backward: 0.4
+  max_vel_left: 0.0
+  max_vel_right: 0.0
+  margin_max_vel_travel: 0.1
+
+  max_vel_rotation: 1.0
+  margin_max_vel_rotation: 0.1
+
+  max_acc_travel: 1.0
+  max_acc_side: 0.0
+  margin_max_acc_travel: 0.1
+
+  max_acc_rotation: 1.57
+  margin_max_acc_rotation: 0.1
+
+  min_turning_radius: 0.87
+  margin_kinematics_turning_radius: 0.1
+
+  xy_goal_tolerance: 0.2
+  yaw_goal_tolerance: 0.1
+
+  free_goal_vel: false
+  complete_global_plan: true
+
+  no_outer_iterations: 3
+  no_inner_iterations: 4
+
+  weight_max_vel_travel: 1.0
+  weight_max_vel_side: 1.0
+
+  weight_max_acc_travel: 1.0
+  weight_max_acc_side: 1.0
+
+  weight_max_vel_rotation: 1.0
+  weight_max_acc_rotation: 1.0
+
+  weight_kinematics_forward: 10.0
+  weight_kinematics_smooth: 1000.0
+  weight_kinematics_turning_radius: 5.0
+
+  weight_shortest_path: 0.1
+  weight_optimal_time: 2.0
+  weight_obstacle_collision: 50.0
+  weight_obstacle_inflation: 1.0
+
+  weight_viapoints: 1.0
