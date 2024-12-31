@@ -1,0 +1,9 @@
+free_thresh: 100
+image: sim.pgm
+negate: true
+occupied_thresh: 200
+origin:
+- -4.635663986206055
+- -31.556201934814453
+- 0.0
+resolution: 0.1
