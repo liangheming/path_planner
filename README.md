@@ -26,3 +26,8 @@ source devel/setup.bash
 roslaunch path_follower follower.launch
 ```
 在rviz中，通过2D Pose Estimate 发布起点，通过2D Nav Goal发布终点。
+
+## 参考列表
+1. [nav2_smac_planner](https://github.com/ros-navigation/navigation2/tree/main/nav2_smac_planner)
+2. [teb_local_planner](https://github.com/rst-tu-dortmund/teb_local_planner)
+3. [nanoflann](https://github.com/jlblancoc/nanoflann)
