@@ -40,8 +40,8 @@ path_follower:
   stop_vel_rotation: 0.1
 
   ignore_back_range: 0.5
-  max_follow_range: 6.0
-  max_follow_length: 5.0
+  max_follow_range: 4.5
+  max_follow_length: 6.0
 
   viapo_seperation: -0.1
   obstacle_behind_ignore_range: 1.5
